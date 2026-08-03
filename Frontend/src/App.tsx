@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { PenTool, Layout, Layers, Monitor, Sparkles, Users, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 function App() {
   const workspaces = [
@@ -46,7 +47,7 @@ function App() {
             <a href="#ai" className="hover:text-foreground transition-colors">AI Magic</a>
           </div>
           <div className="flex items-center gap-4">
-            <button className="text-sm font-medium hover:text-primary transition-colors">Log in</button>
+            <Link to="/auth" className="text-sm font-medium hover:text-primary transition-colors">Log in</Link>
             <button className="bg-foreground text-background hover:bg-foreground/90 px-4 py-2 rounded-full text-sm font-medium transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
               Get Started
             </button>
@@ -99,10 +100,10 @@ function App() {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4"
           >
-            <button className="w-full sm:w-auto px-8 py-4 bg-primary hover:bg-primary/90 text-white rounded-full font-medium text-lg flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-primary/25 hover:-translate-y-1">
+            <Link to="/canvas" className="w-full sm:w-auto px-8 py-4 bg-primary hover:bg-primary/90 text-white rounded-full font-medium text-lg flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-primary/25 hover:-translate-y-1">
               Start Designing Free
               <ArrowRight className="w-5 h-5" />
-            </button>
+            </Link>
             <button className="w-full sm:w-auto px-8 py-4 bg-card hover:bg-accent text-foreground rounded-full font-medium text-lg border border-border flex items-center justify-center transition-all">
               Watch Demo
             </button>

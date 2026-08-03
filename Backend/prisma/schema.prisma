@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -15,6 +13,19 @@ model User {
   id        String   @id @default(uuid())
   email     String   @unique
   name      String?
+  password  String
+  canvases  Canvas[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model Canvas {
+  id        String   @id @default(uuid())
+  name      String   @default("Untitled Canvas")
+  data      Json     @default("[]")
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
