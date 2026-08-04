@@ -1,11 +1,14 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Stage, Layer, Rect, Circle, Line, Transformer, Text } from 'react-konva';
 import Konva from 'konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { useCanvasStore } from '../../store/useCanvasStore';
-import { MousePointer2, Pen, Square, Circle as CircleIcon, Trash2, Undo2, Redo2, Download, ChevronLeft, UserCircle, Type as TypeIcon, Group as GroupIcon, Ungroup } from 'lucide-react';
+import { useAuthStore } from '../../store/useAuthStore';
+import { canvasApi } from '../../lib/api';
+import type { CanvasElement } from '../../store/useCanvasStore';
+import { MousePointer2, Pen, Square, Circle as CircleIcon, Trash2, Undo2, Redo2, Download, ChevronLeft, UserCircle, Type as TypeIcon, Group as GroupIcon, Ungroup, CloudUpload, Loader2, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const COLORS = ['#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#0f172a', '#ffffff'];
 
@@ -18,11 +21,20 @@ export const InfiniteCanvas = () => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
+
+  // Canvas persistence state
+  const [canvasId, setCanvasId] = useState<string | null>(null);
+  const [canvasName, setCanvasName] = useState('Untitled Canvas');
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const trRef = useRef<Konva.Transformer>(null);
   const dragStartPositions = useRef<{ [id: string]: { x: number, y: number } }>({});
 
   const { tool, setTool, elements, addElement, updateElement, selectedIds, setSelectedIds, setElements, commit, undo, redo, past, future } = useCanvasStore();
+  const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
 
   const selectedElement = selectedIds.length === 1 ? elements.find(el => el.id === selectedIds[0]) : null;
   const editingElement = elements.find(el => el.id === editingTextId);
@@ -35,6 +47,68 @@ export const InfiniteCanvas = () => {
       textareaRef.current.selectionEnd = textareaRef.current.value.length;
     }
   }, [editingTextId]);
+
+  // ─── Canvas persistence: load or create on mount ─────────────────────────
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+
+    const init = async () => {
+      const saved = localStorage.getItem('canvax_last_canvas_id');
+      try {
+        if (saved) {
+          const canvas = await canvasApi.get(saved);
+          if (!cancelled) {
+            setCanvasId(canvas.id);
+            setCanvasName(canvas.name);
+            setElements(canvas.data as CanvasElement[]);
+          }
+        } else {
+          const canvas = await canvasApi.create('Untitled Canvas');
+          if (!cancelled) {
+            setCanvasId(canvas.id);
+            setCanvasName(canvas.name);
+            localStorage.setItem('canvax_last_canvas_id', canvas.id);
+          }
+        }
+      } catch {
+        // If load fails (e.g. canvas deleted), create a fresh one
+        const canvas = await canvasApi.create('Untitled Canvas');
+        if (!cancelled) {
+          setCanvasId(canvas.id);
+          setCanvasName(canvas.name);
+          localStorage.setItem('canvax_last_canvas_id', canvas.id);
+        }
+      }
+    };
+
+    init();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // ─── Auto-save: debounced 2s after any elements change ───────────────────
+  const saveCanvas = useCallback(async (id: string, name: string, data: CanvasElement[]) => {
+    setSaveStatus('saving');
+    try {
+      await canvasApi.save(id, name, data);
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 2000);
+    } catch {
+      setSaveStatus('idle');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!canvasId || elements.length === 0) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveCanvas(canvasId, canvasName, elements);
+    }, 2000);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [elements, canvasId, canvasName, saveCanvas]);
 
   // Attach transformer to selected nodes
   useEffect(() => {
@@ -437,21 +511,69 @@ export const InfiniteCanvas = () => {
             <span className="font-bold tracking-tight text-lg hidden sm:block">CanvasX AI</span>
           </Link>
           <div className="w-px h-6 bg-border hidden sm:block" />
-          <div className="text-sm font-medium text-foreground px-3 py-1.5 rounded-lg hover:bg-muted cursor-pointer transition-colors border border-transparent hover:border-border">
-            Untitled Canvas
-          </div>
+          {/* Editable Canvas Title */}
+          {editingTitle ? (
+            <input
+              autoFocus
+              value={canvasName}
+              onChange={(e) => setCanvasName(e.target.value)}
+              onBlur={() => {
+                setEditingTitle(false);
+                if (canvasId) saveCanvas(canvasId, canvasName, elements);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setEditingTitle(false);
+                  if (canvasId) saveCanvas(canvasId, canvasName, elements);
+                }
+              }}
+              className="text-sm font-medium bg-background border border-primary rounded-lg px-3 py-1.5 outline-none w-40"
+            />
+          ) : (
+            <div
+              onClick={() => setEditingTitle(true)}
+              className="text-sm font-medium text-foreground px-3 py-1.5 rounded-lg hover:bg-muted cursor-pointer transition-colors border border-transparent hover:border-border max-w-[160px] truncate"
+              title={canvasName}
+            >
+              {canvasName}
+            </div>
+          )}
+
+          {/* Save Status Indicator */}
+          <AnimatePresence mode="wait">
+            {saveStatus === 'saving' && (
+              <motion.div key="saving" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span className="hidden sm:block">Saving…</span>
+              </motion.div>
+            )}
+            {saveStatus === 'saved' && (
+              <motion.div key="saved" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="flex items-center gap-1.5 text-xs text-green-500">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:block">Saved</span>
+              </motion.div>
+            )}
+            {saveStatus === 'idle' && canvasId && (
+              <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground/60">
+                <CloudUpload className="w-3.5 h-3.5" />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-xl">
-          <button 
-            onClick={undo} 
+          <button
+            onClick={undo}
             disabled={past.length === 0}
             className={`p-2 rounded-lg transition-all ${past.length === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-background hover:shadow-sm text-foreground active:scale-95'}`}
             title="Undo (Ctrl+Z)"
           >
             <Undo2 className="w-4 h-4" />
           </button>
-          <button 
+          <button
             onClick={redo}
             disabled={future.length === 0}
             className={`p-2 rounded-lg transition-all ${future.length === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-background hover:shadow-sm text-foreground active:scale-95'}`}
@@ -462,7 +584,7 @@ export const InfiniteCanvas = () => {
         </div>
 
         <div className="flex items-center gap-3 md:gap-4">
-          <button 
+          <button
             onClick={exportCanvas}
             className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-xl font-medium text-sm transition-all shadow-lg hover:shadow-primary/25 active:scale-95"
             title="Export as PNG"
@@ -471,11 +593,33 @@ export const InfiniteCanvas = () => {
             <span className="hidden sm:block">Export</span>
           </button>
           <div className="w-px h-6 bg-border hidden sm:block" />
-          <Link to="/auth" className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary to-secondary p-0.5 shadow-md hover:shadow-lg transition-shadow cursor-pointer">
-            <div className="w-full h-full bg-background rounded-full flex items-center justify-center overflow-hidden">
-              <UserCircle className="w-full h-full text-muted-foreground mt-1" />
+          {/* User Avatar + Logout */}
+          {user ? (
+            <div className="relative group">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary to-secondary p-0.5 shadow-md hover:shadow-lg transition-shadow cursor-pointer">
+                <div className="w-full h-full bg-background rounded-full flex items-center justify-center text-xs font-bold text-primary uppercase">
+                  {user.name?.[0] ?? <UserCircle className="w-5 h-5" />}
+                </div>
+              </div>
+              {/* Tooltip Dropdown */}
+              <div className="absolute right-0 top-12 w-44 glass border border-border/50 rounded-xl shadow-xl p-2 z-50 hidden group-hover:block">
+                <div className="px-3 py-2 text-xs font-semibold text-muted-foreground truncate">{user.email}</div>
+                <div className="border-t border-border/50 my-1" />
+                <button
+                  onClick={() => { logout(); navigate('/auth'); }}
+                  className="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors text-red-400"
+                >
+                  Log out
+                </button>
+              </div>
             </div>
-          </Link>
+          ) : (
+            <Link to="/auth" className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary to-secondary p-0.5 shadow-md hover:shadow-lg transition-shadow cursor-pointer">
+              <div className="w-full h-full bg-background rounded-full flex items-center justify-center overflow-hidden">
+                <UserCircle className="w-full h-full text-muted-foreground mt-1" />
+              </div>
+            </Link>
+          )}
         </div>
       </div>
 

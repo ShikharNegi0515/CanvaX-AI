@@ -6,13 +6,34 @@ export declare class AuthService {
     private jwtService;
     constructor(prisma: PrismaService, jwtService: JwtService);
     register(dto: RegisterDto): Promise<{
-        user: any;
+        user: {
+            id: string;
+            email: string;
+            name: string | null;
+            createdAt: Date;
+        };
         access_token: string;
     }>;
     login(dto: LoginDto): Promise<{
-        user: any;
+        user: {
+            id: string;
+            email: string;
+            name: string | null;
+            createdAt: Date;
+            updatedAt: Date;
+        };
         access_token: string;
     }>;
-    getProfile(userId: string): Promise<any>;
+    getProfile(userId: string): Promise<{
+        id: string;
+        email: string;
+        name: string | null;
+        createdAt: Date;
+        canvases: {
+            id: string;
+            name: string;
+            updatedAt: Date;
+        }[];
+    }>;
     private signToken;
 }
