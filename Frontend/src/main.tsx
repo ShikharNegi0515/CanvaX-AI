@@ -5,20 +5,34 @@ import './index.css'
 import App from './App.tsx'
 import { InfiniteCanvas } from './components/canvas/InfiniteCanvas'
 import { AuthPage } from './pages/AuthPage'
+import { DashboardPage } from './pages/DashboardPage'
+import { ProtectedRoute } from './components/auth/ProtectedRoute'
 
 const router = createBrowserRouter([
   {
-    path: "/",
+    path: '/',
     element: <App />,
   },
   {
-    path: "/canvas",
-    element: <InfiniteCanvas />,
+    path: '/auth',
+    element: <AuthPage />,
   },
   {
-    path: "/auth",
-    element: <AuthPage />,
-  }
+    path: '/dashboard',
+    element: (
+      <ProtectedRoute>
+        <DashboardPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/canvas',
+    element: (
+      <ProtectedRoute>
+        <InfiniteCanvas />
+      </ProtectedRoute>
+    ),
+  },
 ]);
 
 createRoot(document.getElementById('root')!).render(

@@ -10,30 +10,30 @@ export declare class CanvasController {
     private canvasService;
     constructor(canvasService: CanvasService);
     create(req: AuthRequest, dto: CreateCanvasDto): Promise<{
-        id: string;
         name: string;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
         data: import("@prisma/client/runtime/client").JsonValue;
         userId: string;
     }>;
     findAll(req: AuthRequest): Promise<{
-        id: string;
         name: string;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
     }[]>;
     findOne(id: string, req: AuthRequest): Promise<{
-        id: string;
         name: string;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
         data: import("@prisma/client/runtime/client").JsonValue;
         userId: string;
     }>;
     save(id: string, req: AuthRequest, dto: SaveCanvasDto): Promise<{
-        id: string;
         name: string;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
         data: import("@prisma/client/runtime/client").JsonValue;

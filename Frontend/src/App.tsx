@@ -48,9 +48,9 @@ function App() {
           </div>
           <div className="flex items-center gap-4">
             <Link to="/auth" className="text-sm font-medium hover:text-primary transition-colors">Log in</Link>
-            <button className="bg-foreground text-background hover:bg-foreground/90 px-4 py-2 rounded-full text-sm font-medium transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
+            <Link to="/dashboard" className="bg-foreground text-background hover:bg-foreground/90 px-4 py-2 rounded-full text-sm font-medium transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
               Get Started
-            </button>
+            </Link>
           </div>
         </div>
       </nav>
@@ -100,7 +100,7 @@ function App() {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4"
           >
-            <Link to="/canvas" className="w-full sm:w-auto px-8 py-4 bg-primary hover:bg-primary/90 text-white rounded-full font-medium text-lg flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-primary/25 hover:-translate-y-1">
+            <Link to="/dashboard" className="w-full sm:w-auto px-8 py-4 bg-primary hover:bg-primary/90 text-white rounded-full font-medium text-lg flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-primary/25 hover:-translate-y-1">
               Start Designing Free
               <ArrowRight className="w-5 h-5" />
             </Link>

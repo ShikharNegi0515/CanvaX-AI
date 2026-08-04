@@ -504,7 +504,7 @@ export const InfiniteCanvas = () => {
       {/* Premium Top Navigation */}
       <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between glass px-4 md:px-6 py-3 rounded-2xl border border-border/50 shadow-lg backdrop-blur-xl">
         <div className="flex items-center gap-4 md:gap-6">
-          <Link to="/" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors group">
+          <Link to="/dashboard" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors group">
             <div className="p-1.5 rounded-lg bg-muted group-hover:bg-primary/20 transition-colors">
               <ChevronLeft className="w-4 h-4" />
             </div>
