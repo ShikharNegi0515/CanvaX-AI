@@ -166,77 +166,7 @@ export function drawElement(rc: RC, ctx: CanvasRenderingContext2D, el: CanvasEle
       break;
     }
     case 'text': {
-      const fontFamilyMap: Record<string, string> = {
-        hand: 'Caveat, cursive',
-        normal: 'Inter, sans-serif',
-        code: '"Courier New", monospace',
-        serif: 'Georgia, serif',
-        comic: '"Comic Sans MS", cursive',
-        impact: 'Impact, sans-serif',
-      };
-      const font = fontFamilyMap[el.fontFamily ?? 'hand'] ?? fontFamilyMap['hand'];
-      const fontSize = el.fontSize ?? 20;
-      const lineHeight = fontSize * 1.5;
-      const padding = 4; // matches textarea padding: '4px'
-      const boxWidth = Math.abs(el.width ?? 200) - padding * 2;
-
-      ctx.save();
-      ctx.font = `${fontSize}px ${font}`;
-      ctx.fillStyle = el.strokeColor ?? '#1e1e1e';
-      ctx.textBaseline = 'top';
-      ctx.textAlign = 'left';
-
-      const rawLines = (el.text ?? '').split('\n');
-      let currentY = (el.y ?? 0) + padding;
-
-      rawLines.forEach((rawLine) => {
-        if (rawLine === '') {
-          // empty line — just advance Y
-          currentY += lineHeight;
-          return;
-        }
-        
-        const words = rawLine.split(' ');
-        let currentLine = '';
-
-        for (let n = 0; n < words.length; n++) {
-          const word = words[n];
-          const testLine = currentLine ? currentLine + ' ' + word : word;
-          const testWidth = ctx.measureText(testLine).width;
-
-          if (testWidth > boxWidth) {
-            if (currentLine !== '') {
-              ctx.fillText(currentLine, (el.x ?? 0) + padding, currentY);
-              currentY += lineHeight;
-              currentLine = '';
-              n--; // retry the word on the next line
-            } else {
-              // Word is longer than the box width; wrap by character
-              let tempWord = '';
-              for (let i = 0; i < word.length; i++) {
-                const char = word[i];
-                const charTest = tempWord + char;
-                if (ctx.measureText(charTest).width > boxWidth && tempWord !== '') {
-                  ctx.fillText(tempWord, (el.x ?? 0) + padding, currentY);
-                  currentY += lineHeight;
-                  tempWord = char;
-                } else {
-                  tempWord = charTest;
-                }
-              }
-              currentLine = tempWord;
-            }
-          } else {
-            currentLine = testLine;
-          }
-        }
-        if (currentLine) {
-          ctx.fillText(currentLine, (el.x ?? 0) + padding, currentY);
-          currentY += lineHeight;
-        }
-      });
-
-      ctx.restore();
+      // Text rendering is handled at the end of drawElement
       break;
     }
     case 'frame': {
@@ -278,5 +208,97 @@ export function drawElement(rc: RC, ctx: CanvasRenderingContext2D, el: CanvasEle
       break;
   }
 
+  if (el.text) {
+    renderText(ctx, el);
+  }
+
+  ctx.restore();
+}
+
+function renderText(ctx: CanvasRenderingContext2D, el: CanvasElement) {
+  const fontFamilyMap: Record<string, string> = {
+    hand: 'Caveat, cursive',
+    normal: 'Inter, sans-serif',
+    code: '"Courier New", monospace',
+    serif: 'Georgia, serif',
+    comic: '"Comic Sans MS", cursive',
+    impact: 'Impact, sans-serif',
+  };
+  const font = fontFamilyMap[el.fontFamily ?? 'hand'] ?? fontFamilyMap['hand'];
+  const fontSize = el.fontSize ?? 20;
+  const lineHeight = fontSize * 1.5;
+  const padding = 4;
+  const boxWidth = Math.abs(el.width ?? 200) - padding * 2;
+
+  ctx.save();
+  ctx.font = `${fontSize}px ${font}`;
+  ctx.fillStyle = el.strokeColor ?? '#1e1e1e';
+  
+  const rawLines = (el.text ?? '').split('\n');
+  const wrappedLines: string[] = [];
+  
+  rawLines.forEach((rawLine) => {
+    if (rawLine === '') {
+      wrappedLines.push('');
+      return;
+    }
+    const words = rawLine.split(' ');
+    let currentLine = '';
+    for (let n = 0; n < words.length; n++) {
+      const word = words[n];
+      const testLine = currentLine ? currentLine + ' ' + word : word;
+      const testWidth = ctx.measureText(testLine).width;
+      
+      if (testWidth > boxWidth) {
+        if (currentLine !== '') {
+          wrappedLines.push(currentLine);
+          currentLine = '';
+          n--;
+        } else {
+          let tempWord = '';
+          for (let i = 0; i < word.length; i++) {
+            const char = word[i];
+            const charTest = tempWord + char;
+            if (ctx.measureText(charTest).width > boxWidth && tempWord !== '') {
+              wrappedLines.push(tempWord);
+              tempWord = char;
+            } else {
+              tempWord = charTest;
+            }
+          }
+          currentLine = tempWord;
+        }
+      } else {
+        currentLine = testLine;
+      }
+    }
+    if (currentLine) {
+      wrappedLines.push(currentLine);
+    }
+  });
+
+  const isShape = el.type !== 'text';
+  let startY = (el.y ?? 0) + padding;
+  
+  if (isShape) {
+    const totalHeight = wrappedLines.length * lineHeight;
+    const boxHeight = Math.abs(el.height ?? 200);
+    startY = (el.y ?? 0) + (boxHeight - totalHeight) / 2;
+  }
+  
+  ctx.textBaseline = 'top';
+  ctx.textAlign = isShape ? 'center' : 'left';
+  
+  let currentY = startY;
+  const centerX = (el.x ?? 0) + Math.abs(el.width ?? 200) / 2;
+  
+  wrappedLines.forEach(line => {
+    if (line !== '') {
+      const startX = isShape ? centerX : (el.x ?? 0) + padding;
+      ctx.fillText(line, startX, currentY);
+    }
+    currentY += lineHeight;
+  });
+  
   ctx.restore();
 }

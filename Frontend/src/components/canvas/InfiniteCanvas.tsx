@@ -36,6 +36,7 @@ export function InfiniteCanvas() {
 
   // Text editing state
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
+  const [snapLines, setSnapLines] = useState<{x?: number, y?: number}[]>([]);
 
   // Auto-focus AND auto-size textarea when text editing starts
   useEffect(() => {
@@ -297,8 +298,27 @@ export function InfiniteCanvas() {
       ctx.restore();
     }
 
+    // Draw snap lines
+    snapLines.forEach(line => {
+      ctx.save();
+      ctx.strokeStyle = '#fa5252';
+      ctx.lineWidth = 1 / camera.zoom;
+      ctx.setLineDash([5 / camera.zoom, 5 / camera.zoom]);
+      ctx.beginPath();
+      if (line.x !== undefined) {
+        ctx.moveTo(line.x, -10000);
+        ctx.lineTo(line.x, 10000);
+      }
+      if (line.y !== undefined) {
+        ctx.moveTo(-10000, line.y);
+        ctx.lineTo(10000, line.y);
+      }
+      ctx.stroke();
+      ctx.restore();
+    });
+
     ctx.restore();
-  }, [elements, camera, selectedIds, erasingIds, hoveredEraserId, editingTextId, textBoxDraft, appState.viewBackgroundColor, renderTrigger, tool]);
+  }, [elements, camera, selectedIds, erasingIds, hoveredEraserId, editingTextId, textBoxDraft, appState.viewBackgroundColor, renderTrigger, tool, snapLines]);
 
   const getHitElement = useCallback((ptr: { x: number, y: number }) => {
     return [...elements].reverse().find(el => {
@@ -403,7 +423,34 @@ export function InfiniteCanvas() {
       if (hit) {
 
         if (!selectedIds.includes(hit.id)) {
-          setSelectedIds([hit.id]);
+          let newSelection = [hit.id];
+          if (hit.type === 'frame') {
+            const fx = hit.x ?? 0;
+            const fy = hit.y ?? 0;
+            const fw = hit.width ?? 0;
+            const fh = hit.height ?? 0;
+            const fLeft = Math.min(fx, fx + fw);
+            const fRight = Math.max(fx, fx + fw);
+            const fTop = Math.min(fy, fy + fh);
+            const fBottom = Math.max(fy, fy + fh);
+            
+            elements.forEach(child => {
+              if (child.id !== hit.id) {
+                const cx = child.x ?? 0;
+                const cy = child.y ?? 0;
+                const cw = child.width ?? 0;
+                const ch = child.height ?? 0;
+                const cLeft = Math.min(cx, cx + cw);
+                const cRight = Math.max(cx, cx + cw);
+                const cTop = Math.min(cy, cy + ch);
+                const cBottom = Math.max(cy, cy + ch);
+                if (cLeft >= fLeft && cRight <= fRight && cTop >= fTop && cBottom <= fBottom) {
+                  newSelection.push(child.id);
+                }
+              }
+            });
+          }
+          setSelectedIds(newSelection);
         }
         setIsDragging(true);
         setDragStart(ptr);
@@ -510,8 +557,49 @@ export function InfiniteCanvas() {
     const ptr = getPointer(e);
 
     if (tool === 'select') {
-      const dx = ptr.x - dragStart.x;
-      const dy = ptr.y - dragStart.y;
+      let dx = ptr.x - dragStart.x;
+      let dy = ptr.y - dragStart.y;
+
+      const newSnapLines: {x?: number, y?: number}[] = [];
+      if (selectedIds.length === 1 && !e.altKey) {
+        const id = selectedIds[0];
+        const el = elements.find(e => e.id === id);
+        if (el) {
+          const nx = (el.x ?? 0) + dx;
+          const ny = (el.y ?? 0) + dy;
+          const nw = el.width ?? 0;
+          const nh = el.height ?? 0;
+          const centerNx = nx + nw / 2;
+          const centerNy = ny + nh / 2;
+          
+          let snappedX = false;
+          let snappedY = false;
+          
+          elements.forEach(other => {
+            if (other.id === id || selectedIds.includes(other.id)) return;
+            const ox = other.x ?? 0;
+            const oy = other.y ?? 0;
+            const ow = other.width ?? 0;
+            const oh = other.height ?? 0;
+            const centerOx = ox + ow / 2;
+            const centerOy = oy + oh / 2;
+            
+            const threshold = 5 / camera.zoom;
+            
+            if (!snappedX && Math.abs(centerNx - centerOx) < threshold) { dx = centerOx - nw / 2 - (el.x ?? 0); newSnapLines.push({ x: centerOx }); snappedX = true; }
+            if (!snappedY && Math.abs(centerNy - centerOy) < threshold) { dy = centerOy - nh / 2 - (el.y ?? 0); newSnapLines.push({ y: centerOy }); snappedY = true; }
+            
+            if (!snappedX && Math.abs(nx - ox) < threshold) { dx = ox - (el.x ?? 0); newSnapLines.push({x: ox}); snappedX = true; }
+            if (!snappedY && Math.abs(ny - oy) < threshold) { dy = oy - (el.y ?? 0); newSnapLines.push({y: oy}); snappedY = true; }
+            
+            const rightNx = nx + nw; const rightOx = ox + ow;
+            const bottomNy = ny + nh; const bottomOy = oy + oh;
+            if (!snappedX && Math.abs(rightNx - rightOx) < threshold) { dx = rightOx - nw - (el.x ?? 0); newSnapLines.push({x: rightOx}); snappedX = true; }
+            if (!snappedY && Math.abs(bottomNy - bottomOy) < threshold) { dy = bottomOy - nh - (el.y ?? 0); newSnapLines.push({y: bottomOy}); snappedY = true; }
+          });
+        }
+      }
+      setSnapLines(newSnapLines);
 
       const updates = selectedIds.map(id => {
         const el = elements.find(e => e.id === id);
@@ -545,6 +633,7 @@ export function InfiniteCanvas() {
 
   const handlePointerUp = (e: React.PointerEvent) => {
     setIsPanning(false);
+    setSnapLines([]);
 
     // Text box drag complete — create element with those dimensions
     if (tool === 'text' && textBoxStart.current) {
@@ -713,7 +802,7 @@ export function InfiniteCanvas() {
       y: (e.clientY - rect.top - cam.y) / cam.zoom,
     };
     const hit = getHitElement(ptr);
-    if (hit && hit.type === 'text') {
+    if (hit && (hit.type === 'text' || hit.type === 'rectangle' || hit.type === 'ellipse' || hit.type === 'diamond')) {
       setEditingTextId(hit.id);
       setTool('select');
       setSelectedIds([hit.id]);
@@ -901,6 +990,7 @@ export function InfiniteCanvas() {
               whiteSpace: 'pre-wrap',
               wordWrap: 'break-word',
               boxSizing: 'border-box',
+              textAlign: editingElement.type === 'text' ? 'left' : 'center',
               caretColor: editingElement.strokeColor ?? '#1e1e1e',
             }}
           />
