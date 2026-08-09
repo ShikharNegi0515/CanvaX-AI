@@ -228,7 +228,7 @@ function renderText(ctx: CanvasRenderingContext2D, el: CanvasElement) {
   const fontSize = el.fontSize ?? 20;
   const lineHeight = fontSize * 1.5;
   const padding = 4;
-  const boxWidth = Math.abs(el.width ?? 200) - padding * 2;
+  const boxWidth = el.autoSize ? Infinity : Math.abs(el.width ?? 200) - padding * 2;
 
   ctx.save();
   ctx.font = `${fontSize}px ${font}`;
@@ -301,4 +301,78 @@ function renderText(ctx: CanvasRenderingContext2D, el: CanvasElement) {
   });
   
   ctx.restore();
+}
+
+export function measureTextDimensions(text: string, el: CanvasElement) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d')!;
+  
+  const fontFamilyMap: Record<string, string> = {
+    hand: 'Caveat, cursive',
+    normal: 'Inter, sans-serif',
+    code: '"Courier New", monospace',
+    serif: 'Georgia, serif',
+    comic: '"Comic Sans MS", cursive',
+    impact: 'Impact, sans-serif',
+  };
+  const font = fontFamilyMap[el.fontFamily ?? 'hand'] ?? fontFamilyMap['hand'];
+  const fontSize = el.fontSize ?? 20;
+  const lineHeight = fontSize * 1.5;
+  const padding = 4;
+  const boxWidth = el.autoSize ? Infinity : Math.abs(el.width ?? 200) - padding * 2;
+  
+  ctx.font = `${fontSize}px ${font}`;
+  
+  const rawLines = text.split('\n');
+  const wrappedLines: string[] = [];
+  
+  let maxWidth = 0;
+
+  rawLines.forEach((rawLine) => {
+    if (rawLine === '') {
+      wrappedLines.push('');
+      return;
+    }
+    const words = rawLine.split(' ');
+    let currentLine = '';
+    for (let n = 0; n < words.length; n++) {
+      const word = words[n];
+      const testLine = currentLine ? currentLine + ' ' + word : word;
+      const testWidth = ctx.measureText(testLine).width;
+      
+      if (testWidth > boxWidth) {
+        if (currentLine !== '') {
+          wrappedLines.push(currentLine);
+          maxWidth = Math.max(maxWidth, ctx.measureText(currentLine).width);
+          currentLine = '';
+          n--;
+        } else {
+          let tempWord = '';
+          for (let i = 0; i < word.length; i++) {
+            const char = word[i];
+            const charTest = tempWord + char;
+            if (ctx.measureText(charTest).width > boxWidth && tempWord !== '') {
+              wrappedLines.push(tempWord);
+              maxWidth = Math.max(maxWidth, ctx.measureText(tempWord).width);
+              tempWord = char;
+            } else {
+              tempWord = charTest;
+            }
+          }
+          currentLine = tempWord;
+        }
+      } else {
+        currentLine = testLine;
+      }
+    }
+    if (currentLine) {
+      wrappedLines.push(currentLine);
+      maxWidth = Math.max(maxWidth, ctx.measureText(currentLine).width);
+    }
+  });
+
+  return {
+    width: maxWidth + padding * 2,
+    height: wrappedLines.length * lineHeight + padding * 2
+  };
 }

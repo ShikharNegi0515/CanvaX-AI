@@ -5,6 +5,7 @@ interface PropertiesPanelProps {
   defaultStyle: CanvasState['defaultStyle'];
   onUpdateElements: (updates: { id: string; attrs: Partial<CanvasElement> }[]) => void;
   onUpdateDefaultStyle: (patch: Partial<CanvasState['defaultStyle']>) => void;
+  onReorderElements: (ids: string[], direction: 'front' | 'back') => void;
   theme: 'light' | 'dark';
   tool?: Tool;
 }
@@ -17,6 +18,7 @@ export function PropertiesPanel({
   defaultStyle,
   onUpdateElements,
   onUpdateDefaultStyle,
+  onReorderElements,
   theme,
   tool,
 }: PropertiesPanelProps) {
@@ -213,6 +215,19 @@ export function PropertiesPanel({
               onClick={() => toggleList('number')}
               style={{ flex: 1, padding: '6px', borderRadius: 6, border: `1px solid ${border}`, background: isDark ? '#191920' : '#f1f3f5', color: text, cursor: 'pointer', fontSize: 12 }}>
               1. Number
+            </button>
+          </div>
+          <SectionTitle>Layering</SectionTitle>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button 
+              onClick={() => onReorderElements(selectedElements.map(el => el.id), 'front')}
+              style={{ flex: 1, padding: '6px', borderRadius: 6, border: `1px solid ${border}`, background: isDark ? '#191920' : '#f1f3f5', color: text, cursor: 'pointer', fontSize: 12 }}>
+              Bring to Front
+            </button>
+            <button 
+              onClick={() => onReorderElements(selectedElements.map(el => el.id), 'back')}
+              style={{ flex: 1, padding: '6px', borderRadius: 6, border: `1px solid ${border}`, background: isDark ? '#191920' : '#f1f3f5', color: text, cursor: 'pointer', fontSize: 12 }}>
+              Send to Back
             </button>
           </div>
         </>

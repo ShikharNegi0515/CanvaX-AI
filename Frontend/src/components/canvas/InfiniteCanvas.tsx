@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import rough from 'roughjs';
 import { useCanvasStore, type CanvasElement, type Tool } from '../../store/useCanvasStore';
-import { drawElement } from './rough-utils';
+import { drawElement, measureTextDimensions } from './rough-utils';
 import { Toolbar } from './Toolbar';
 import { PropertiesPanel } from './PropertiesPanel';
 import { HamburgerMenu } from './HamburgerMenu';
@@ -13,10 +13,11 @@ export function InfiniteCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const textInputRef = useRef<HTMLTextAreaElement>(null);
+  const [clipboard, setClipboard] = useState<CanvasElement[]>([]);
 
   const {
     tool, setTool, elements, setElements, addElement, updateElement, updateElements,
-    deleteElements,
+    deleteElements, reorderElements,
     selectedIds, setSelectedIds, past, future, undo, redo, commit,
     appState, setAppState, defaultStyle, setDefaultStyle
   } = useCanvasStore();
@@ -146,10 +147,44 @@ export function InfiniteCanvas() {
       if (editingTextId) return;
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
       if (e.ctrlKey || e.metaKey) {
-        if (e.key === 'z') { e.preventDefault(); undo(); }
-        if (e.key === 'y') { e.preventDefault(); redo(); }
-        if (e.key === 'a') { e.preventDefault(); setSelectedIds(elements.map(el => el.id)); }
-        return;
+        if (e.key === 'z') { e.preventDefault(); undo(); return; }
+        if (e.key === 'y') { e.preventDefault(); redo(); return; }
+        if (e.key === 'a') { e.preventDefault(); setSelectedIds(elements.map(el => el.id)); return; }
+        if (e.key === 'c') {
+          e.preventDefault();
+          const selected = elements.filter(el => selectedIds.includes(el.id));
+          if (selected.length > 0) setClipboard(selected);
+          return;
+        }
+        if (e.key === 'v') {
+          e.preventDefault();
+          if (clipboard.length > 0) {
+            const newElements = clipboard.map(el => ({
+              ...el,
+              id: crypto.randomUUID(),
+              x: (el.x ?? 0) + 20,
+              y: (el.y ?? 0) + 20,
+            }));
+            setElements([...elements, ...newElements]);
+            setSelectedIds(newElements.map(el => el.id));
+          }
+          return;
+        }
+        if (e.key === 'd') {
+          e.preventDefault();
+          const selected = elements.filter(el => selectedIds.includes(el.id));
+          if (selected.length > 0) {
+            const newElements = selected.map(el => ({
+              ...el,
+              id: crypto.randomUUID(),
+              x: (el.x ?? 0) + 20,
+              y: (el.y ?? 0) + 20,
+            }));
+            setElements([...elements, ...newElements]);
+            setSelectedIds(newElements.map(el => el.id));
+          }
+          return;
+        }
       }
       const map: Record<string, Tool> = {
         v: 'select', h: 'hand', r: 'rectangle', d: 'diamond',
@@ -171,7 +206,7 @@ export function InfiniteCanvas() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [elements, selectedIds, editingTextId, undo, redo, setTool, setSelectedIds, setElements, commit, openImagePicker]);
+  }, [elements, selectedIds, editingTextId, undo, redo, setTool, setSelectedIds, setElements, commit, openImagePicker, clipboard]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -647,12 +682,14 @@ export function InfiniteCanvas() {
         const x = draft.w < 0 ? draft.x + draft.w : draft.x;
         const y = draft.h < 0 ? draft.y + draft.h : draft.y;
         const id = crypto.randomUUID();
-        // If user just clicked (tiny box), use a default size
-        const finalW = absW < 20 ? 200 : absW;
+        
+        const autoSize = absW < 20;
+        const finalW = autoSize ? 20 : absW;
         const finalH = absH < 20 ? (defaultStyle.fontSize ?? 20) * 1.5 : absH;
+        
         addElement({
           id, type: 'text', x, y, width: finalW, height: finalH,
-          text: '', ...defaultStyle
+          text: '', autoSize, ...defaultStyle
         });
         setEditingTextId(id);
         setSelectedIds([id]);
@@ -825,6 +862,8 @@ export function InfiniteCanvas() {
           setElements([]);
           commit();
         }}
+        onExportPNG={handleExportPNG}
+        onExportSVG={handleExportSVG}
       />
 
       <Toolbar
@@ -841,6 +880,7 @@ export function InfiniteCanvas() {
           defaultStyle={defaultStyle}
           onUpdateElements={updateElements}
           onUpdateDefaultStyle={setDefaultStyle}
+          onReorderElements={reorderElements}
           theme={appState.theme}
           tool={tool}
         />
@@ -910,8 +950,13 @@ export function InfiniteCanvas() {
             position: 'absolute',
             left: (editingElement.x ?? 0) * camera.zoom + camera.x,
             top: (editingElement.y ?? 0) * camera.zoom + camera.y,
+            width: editingElement.type !== 'text' ? Math.abs(editingElement.width ?? 0) * camera.zoom : undefined,
+            height: editingElement.type !== 'text' ? Math.abs(editingElement.height ?? 0) * camera.zoom : undefined,
             zIndex: 400,
-            pointerEvents: 'all',
+            pointerEvents: 'none', // wrapper ignores clicks
+            display: editingElement.type !== 'text' ? 'flex' : 'block',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
           <textarea
@@ -919,33 +964,42 @@ export function InfiniteCanvas() {
             value={editingElement.text ?? ''}
             placeholder="Type here..."
             onChange={e => {
-              updateElement(editingTextId, { text: e.target.value });
-              // Auto-grow height only; width stays fixed to box
               const ta = e.target;
+              if (editingElement.type !== 'text') {
+                updateElement(editingTextId, { text: e.target.value });
+                return;
+              }
+
               ta.style.height = 'auto';
               ta.style.height = ta.scrollHeight + 'px';
-              // Sync height back to the element so canvas renders correctly
+              if (editingElement.autoSize) {
+                ta.style.width = 'auto';
+                ta.style.width = ta.scrollWidth + 'px';
+              }
+
               const cam = cameraRef.current;
+              const dims = measureTextDimensions(e.target.value, editingElement);
+              
               updateElement(editingTextId, {
                 text: e.target.value,
-                height: ta.scrollHeight / cam.zoom,
+                height: dims.height,
+                ...(editingElement.autoSize ? { width: dims.width } : {})
               });
             }}
             onMouseUp={(e) => {
-              if (textInputRef.current) {
+              if (textInputRef.current && editingElement.type === 'text') {
                 const cam = cameraRef.current;
                 const newWidth = textInputRef.current.offsetWidth / cam.zoom;
                 if (newWidth !== Math.abs(editingElement.width ?? 0)) {
-                  updateElement(editingTextId, { width: newWidth });
+                  updateElement(editingTextId, { width: newWidth, autoSize: false });
                 }
               }
             }}
             onBlur={() => {
-              // Sync final size back to element before closing
-              if (textInputRef.current) {
-                const cam = cameraRef.current;
+              if (textInputRef.current && editingElement.type === 'text') {
+                const dims = measureTextDimensions(textInputRef.current.value, editingElement);
                 updateElement(editingTextId, {
-                  height: textInputRef.current.scrollHeight / cam.zoom,
+                  height: dims.height,
                 });
               }
               setEditingTextId(null);
@@ -955,10 +1009,10 @@ export function InfiniteCanvas() {
             onKeyDown={e => {
               e.stopPropagation();
               if (e.key === 'Escape') {
-                if (textInputRef.current) {
-                  const cam = cameraRef.current;
+                if (textInputRef.current && editingElement.type === 'text') {
+                  const dims = measureTextDimensions(textInputRef.current.value, editingElement);
                   updateElement(editingTextId, {
-                    height: textInputRef.current.scrollHeight / cam.zoom,
+                    height: dims.height,
                   });
                 }
                 setEditingTextId(null);
@@ -968,7 +1022,7 @@ export function InfiniteCanvas() {
             }}
             style={{
               display: 'block',
-              width: Math.abs(editingElement.width ?? 200) * camera.zoom,
+              width: editingElement.type !== 'text' ? '100%' : (editingElement.autoSize ? 'auto' : Math.abs(editingElement.width ?? 200) * camera.zoom),
               maxWidth: '80vw',
               minHeight: (editingElement.fontSize ?? 20) * camera.zoom * 1.5,
               fontSize: (editingElement.fontSize ?? 20) * camera.zoom,
@@ -980,18 +1034,19 @@ export function InfiniteCanvas() {
                 'Inter, sans-serif',
               color: editingElement.strokeColor ?? '#1e1e1e',
               background: 'transparent',
-              border: '1px dashed #6965db',
+              border: editingElement.type === 'text' ? '1px dashed #6965db' : 'none',
               outline: 'none',
-              resize: 'horizontal',
-              overflow: 'visible',  // MUST be visible so text isn't clipped on re-edit
+              resize: editingElement.type === 'text' ? 'horizontal' : 'none',
+              overflow: 'hidden',
               padding: '4px',
               margin: 0,
               lineHeight: 1.5,
-              whiteSpace: 'pre-wrap',
+              whiteSpace: (editingElement.type === 'text' && editingElement.autoSize) ? 'pre' : 'pre-wrap',
               wordWrap: 'break-word',
               boxSizing: 'border-box',
               textAlign: editingElement.type === 'text' ? 'left' : 'center',
               caretColor: editingElement.strokeColor ?? '#1e1e1e',
+              pointerEvents: 'auto',
             }}
           />
         </div>

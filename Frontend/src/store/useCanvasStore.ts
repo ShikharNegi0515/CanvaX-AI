@@ -47,6 +47,7 @@ export interface CanvasElement {
   fontSize?: number;
   fontFamily?: FontFamily;
   textAlign?: TextAlign;
+  autoSize?: boolean; // for unbounded text boxes
   label?: string; // for frames
 
   // Appearance
@@ -104,7 +105,7 @@ export interface CanvasState {
   updateElement: (id: string, attrs: Partial<CanvasElement>) => void;
   updateElements: (updates: { id: string; attrs: Partial<CanvasElement> }[]) => void;
   deleteElements: (ids: string[]) => void;
-  reorderElement: (id: string, direction: 'up' | 'down' | 'front' | 'back') => void;
+  reorderElements: (ids: string[], direction: 'front' | 'back') => void;
 
   // History
   past: CanvasElement[][];
@@ -198,17 +199,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     set({ elements: next, past: [...past, cur], future: [], selectedIds: [] });
   },
 
-  reorderElement: (id, direction) =>
+  reorderElements: (ids, direction) =>
     set((state) => {
-      const idx = state.elements.findIndex((el) => el.id === id);
-      if (idx === -1) return state;
       const arr = [...state.elements];
-      const [el] = arr.splice(idx, 1);
-      if (direction === 'up') arr.splice(Math.min(idx + 1, arr.length), 0, el);
-      else if (direction === 'down') arr.splice(Math.max(idx - 1, 0), 0, el);
-      else if (direction === 'front') arr.push(el);
-      else arr.unshift(el);
-      return { elements: arr };
+      const selected = arr.filter(el => ids.includes(el.id));
+      const unselected = arr.filter(el => !ids.includes(el.id));
+      if (direction === 'front') return { elements: [...unselected, ...selected] };
+      return { elements: [...selected, ...unselected] };
     }),
 
   commit: () => {

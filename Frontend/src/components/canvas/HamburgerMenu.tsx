@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Menu, FolderOpen, Save, Moon, Sun, LogIn, LogOut, Plus } from 'lucide-react';
+import { Menu, FolderOpen, Save, Moon, Sun, LogIn, LogOut, Plus, Download, Image } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
 
@@ -7,9 +7,11 @@ interface HamburgerMenuProps {
   theme: 'light' | 'dark';
   onThemeToggle: () => void;
   onClear: () => void;
+  onExportPNG: () => void;
+  onExportSVG: () => void;
 }
 
-export function HamburgerMenu({ theme, onThemeToggle, onClear }: HamburgerMenuProps) {
+export function HamburgerMenu({ theme, onThemeToggle, onClear, onExportPNG, onExportSVG }: HamburgerMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { user, logout } = useAuthStore();
@@ -64,6 +66,8 @@ export function HamburgerMenu({ theme, onThemeToggle, onClear }: HamburgerMenuPr
         >
           <MenuItem icon={<FolderOpen size={16} />} label="Open" />
           <MenuItem icon={<Save size={16} />} label="Save to..." />
+          <MenuItem icon={<Image size={16} />} label="Export as PNG" onClick={onExportPNG} />
+          <MenuItem icon={<Download size={16} />} label="Export as SVG" onClick={onExportSVG} />
           <div style={{ height: 1, background: border, margin: '8px 0' }} />
           <MenuItem icon={<Plus size={16} />} label="Reset the canvas" onClick={onClear} />
           <div style={{ height: 1, background: border, margin: '8px 0' }} />
