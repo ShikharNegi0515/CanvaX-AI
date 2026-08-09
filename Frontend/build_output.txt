@@ -1,0 +1,14 @@
+
+> frontend@0.0.0 build
+> tsc -b && vite build
+
+src/components/canvas/HamburgerMenu.tsx(2,60): error TS2305: Module '"lucide-react"' has no exported member 'Github'.
+src/components/canvas/HamburgerMenu.tsx(2,60): error TS6133: 'Github' is declared but its value is never read.
+src/components/canvas/InfiniteCanvas.tsx(1,39): error TS6133: 'useCallback' is declared but its value is never read.
+src/components/canvas/InfiniteCanvas.tsx(11,1): error TS6133: 'getStroke' is declared but its value is never read.
+src/components/canvas/InfiniteCanvas.tsx(151,13): error TS2367: This comparison appears to be unintentional because the types '"select"' and '"eraser"' have no overlap.
+src/components/canvas/InfiniteCanvas.tsx(266,28): error TS6133: 'e' is declared but its value is never read.
+src/components/canvas/PropertiesPanel.tsx(1,35): error TS2459: Module '"../../store/useCanvasStore"' declares 'CanvasState' locally, but it is not exported.
+src/main.tsx(5,1): error TS6133: 'App' is declared but its value is never read.
+src/main.tsx(8,1): error TS6133: 'DashboardPage' is declared but its value is never read.
+src/main.tsx(9,1): error TS6133: 'ProtectedRoute' is declared but its value is never read.

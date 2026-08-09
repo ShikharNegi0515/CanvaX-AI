@@ -1,56 +1,57 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #8b5cf6;
-  --color-primary-dark: #7c3aed;
-  --color-secondary: #ec4899;
-  --color-bg-dark: #0f172a;
-  --color-bg-light: #f8fafc;
-  --color-surface-dark: #1e293b;
+  --color-primary: #06b6d4;
+  --color-primary-dark: #0891b2;
+  --color-secondary: #10b981;
+  --color-bg-dark: #080c14;
+  --color-bg-light: #f0f9ff;
+  --color-surface-dark: #0d1526;
   --color-surface-light: #ffffff;
 }
 
 @layer base {
   :root {
-    --background: #f8fafc;
-    --foreground: #0f172a;
+    --background: #f0f9ff;
+    --foreground: #050d1a;
     --card: #ffffff;
-    --card-foreground: #0f172a;
+    --card-foreground: #050d1a;
     --popover: #ffffff;
-    --popover-foreground: #0f172a;
-    --primary: #8b5cf6;
+    --popover-foreground: #050d1a;
+    --primary: #06b6d4;
     --primary-foreground: #ffffff;
-    --secondary: #ec4899;
+    --secondary: #10b981;
     --secondary-foreground: #ffffff;
-    --muted: #f1f5f9;
-    --muted-foreground: #64748b;
-    --accent: #f1f5f9;
-    --accent-foreground: #0f172a;
-    --border: #e2e8f0;
-    --input: #e2e8f0;
-    --ring: #8b5cf6;
+    --muted: #e0f2fe;
+    --muted-foreground: #4b7a99;
+    --accent: #e0f2fe;
+    --accent-foreground: #050d1a;
+    --border: #bae6fd;
+    --input: #bae6fd;
+    --ring: #06b6d4;
     --radius: 0.75rem;
   }
 
   @media (prefers-color-scheme: dark) {
     :root {
-      --background: #0f172a;
-      --foreground: #f8fafc;
-      --card: #1e293b;
-      --card-foreground: #f8fafc;
-      --popover: #1e293b;
-      --popover-foreground: #f8fafc;
-      --primary: #8b5cf6;
+      --background: #080c14;
+      --foreground: #e2f4fb;
+      --card: #0d1526;
+      --card-foreground: #e2f4fb;
+      --popover: #0d1526;
+      --popover-foreground: #e2f4fb;
+      --primary: #06b6d4;
       --primary-foreground: #ffffff;
-      --secondary: #ec4899;
+      --secondary: #10b981;
       --secondary-foreground: #ffffff;
-      --muted: #334155;
-      --muted-foreground: #94a3b8;
-      --accent: #334155;
-      --accent-foreground: #f8fafc;
-      --border: #334155;
-      --input: #334155;
-      --ring: #8b5cf6;
+      --muted: #0f2035;
+      --muted-foreground: #6ba8c4;
+      --accent: #0f2035;
+      --accent-foreground: #e2f4fb;
+      --border: #1a3a5c;
+      --input: #1a3a5c;
+      --ring: #06b6d4;
     }
   }
 }
@@ -58,24 +59,61 @@
 @layer base {
   * {
     border-color: var(--border);
+    box-sizing: border-box;
   }
   body {
     background-color: var(--background);
     color: var(--foreground);
     font-feature-settings: "rlig" 1, "calt" 1;
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
   }
 }
 
 /* Glassmorphism */
 .glass {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(6, 182, 212, 0.04);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(6, 182, 212, 0.12);
 }
 
-.dark .glass {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+@media (prefers-color-scheme: dark) {
+  .glass {
+    background: rgba(6, 182, 212, 0.04);
+    border: 1px solid rgba(6, 182, 212, 0.1);
+  }
+}
+
+/* Glow utilities */
+.glow-primary {
+  box-shadow: 0 0 30px rgba(6, 182, 212, 0.25), 0 0 60px rgba(6, 182, 212, 0.1);
+}
+.glow-secondary {
+  box-shadow: 0 0 30px rgba(16, 185, 129, 0.2), 0 0 60px rgba(16, 185, 129, 0.08);
+}
+
+/* Animated gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #10b981 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }

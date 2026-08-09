@@ -11,27 +11,11 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute'
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <App />,
+    element: <InfiniteCanvas />,
   },
   {
     path: '/auth',
     element: <AuthPage />,
-  },
-  {
-    path: '/dashboard',
-    element: (
-      <ProtectedRoute>
-        <DashboardPage />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: '/canvas',
-    element: (
-      <ProtectedRoute>
-        <InfiniteCanvas />
-      </ProtectedRoute>
-    ),
   },
 ]);
 

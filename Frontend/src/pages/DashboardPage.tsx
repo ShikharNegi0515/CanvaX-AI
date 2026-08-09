@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Plus, Trash2, Monitor, LogOut, PenLine,
+  Plus, Trash2, Cpu, LogOut, PenLine,
   Clock, LayoutGrid, Search, ChevronRight, Loader2,
 } from 'lucide-react';
 import { canvasApi, type CanvasData } from '../lib/api';
@@ -20,6 +20,21 @@ const formatDate = (iso: string) => {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
+/* Palette used throughout this page */
+const C = {
+  bg: '#080c14',
+  surface: 'rgba(13,21,38,0.8)',
+  surfaceHover: 'rgba(13,21,38,0.95)',
+  border: 'rgba(6,182,212,0.12)',
+  borderHover: 'rgba(6,182,212,0.35)',
+  text: '#e2f4fb',
+  muted: '#6ba8c4',
+  primary: '#06b6d4',
+  primaryGrad: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+  secondary: '#10b981',
+  cardGrad: 'linear-gradient(135deg, rgba(6,182,212,0.06) 0%, rgba(16,185,129,0.04) 100%)',
+};
+
 export const DashboardPage = () => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
@@ -29,8 +44,8 @@ export const DashboardPage = () => {
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
 
-  // Load canvases on mount
   useEffect(() => {
     canvasApi.list().then((list) => {
       setCanvases(list);
@@ -60,7 +75,6 @@ export const DashboardPage = () => {
     try {
       await canvasApi.delete(id);
       setCanvases((prev) => prev.filter((c) => c.id !== id));
-      // If we deleted the last-opened canvas, clear the ref
       if (localStorage.getItem('canvax_last_canvas_id') === id) {
         localStorage.removeItem('canvax_last_canvas_id');
       }
@@ -79,110 +93,200 @@ export const DashboardPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans">
-      {/* Background ambient */}
-      <div className="fixed top-0 left-0 w-full h-full pointer-events-none overflow-hidden -z-10">
-        <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-secondary/10 rounded-full blur-[120px]" />
+    <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'Inter, sans-serif' }}>
+
+      {/* Background ambient glows */}
+      <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 0 }}>
+        <div style={{
+          position: 'absolute', top: '-160px', left: '-160px',
+          width: '600px', height: '600px', borderRadius: '9999px',
+          background: 'radial-gradient(circle, rgba(6,182,212,0.12) 0%, transparent 70%)',
+          filter: 'blur(80px)',
+        }} />
+        <div style={{
+          position: 'absolute', bottom: '-120px', right: '-120px',
+          width: '500px', height: '500px', borderRadius: '9999px',
+          background: 'radial-gradient(circle, rgba(16,185,129,0.10) 0%, transparent 70%)',
+          filter: 'blur(80px)',
+        }} />
+        <div style={{
+          position: 'absolute', inset: 0,
+          backgroundImage: `linear-gradient(rgba(6,182,212,0.025) 1px, transparent 1px),
+                            linear-gradient(90deg, rgba(6,182,212,0.025) 1px, transparent 1px)`,
+          backgroundSize: '40px 40px',
+        }} />
       </div>
 
-      {/* Top Navigation */}
-      <nav className="border-b border-border/50 glass backdrop-blur-xl sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      {/* Navbar */}
+      <nav style={{
+        position: 'sticky', top: 0, zIndex: 20,
+        background: 'rgba(8,12,20,0.85)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderBottom: `1px solid ${C.border}`,
+      }}>
+        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 24px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg group-hover:shadow-primary/30 transition-shadow">
-              <Monitor className="w-5 h-5 text-white" />
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
+            <div style={{
+              width: '36px', height: '36px', borderRadius: '10px',
+              background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #10b981 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 20px rgba(6,182,212,0.35)',
+            }}>
+              <Cpu style={{ width: '18px', height: '18px', color: '#fff' }} />
             </div>
-            <span className="font-bold text-xl tracking-tight">CanvasX <span className="text-primary">AI</span></span>
+            <span style={{ fontWeight: 700, fontSize: '1.1rem', letterSpacing: '-0.02em', color: C.text }}>
+              CanvasX <span style={{ color: C.primary }}>AI</span>
+            </span>
           </Link>
 
-          {/* User */}
-          <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
-              <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-primary to-secondary flex items-center justify-center text-white text-xs font-bold uppercase">
+          {/* User + Logout */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                width: '32px', height: '32px', borderRadius: '9999px',
+                background: 'linear-gradient(135deg, #06b6d4, #10b981)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '0.75rem', fontWeight: 700, color: '#fff', textTransform: 'uppercase',
+                boxShadow: '0 2px 12px rgba(6,182,212,0.3)',
+              }}>
                 {user?.name?.[0] ?? '?'}
               </div>
-              <span className="font-medium text-foreground">{user?.name}</span>
+              <span style={{ fontSize: '0.875rem', fontWeight: 500, color: C.text }}>{user?.name}</span>
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '6px 12px', borderRadius: '8px',
+                background: 'rgba(6,182,212,0.06)', border: `1px solid ${C.border}`,
+                color: C.muted, fontSize: '0.8rem', cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.color = C.text;
+                (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(6,182,212,0.3)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.color = C.muted;
+                (e.currentTarget as HTMLButtonElement).style.borderColor = C.border;
+              }}
             >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:block">Log out</span>
+              <LogOut style={{ width: '14px', height: '14px' }} />
+              <span>Log out</span>
             </button>
           </div>
         </div>
       </nav>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-10">
-        {/* Header row */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10">
+      {/* Main */}
+      <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '48px 24px', position: 'relative', zIndex: 1 }}>
+
+        {/* Header */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', marginBottom: '40px' }}>
           <div>
-            <h1 className="text-3xl font-bold mb-1">
+            <h1 style={{ fontSize: '2rem', fontWeight: 800, letterSpacing: '-0.03em', color: C.text, marginBottom: '4px' }}>
               My Canvases
             </h1>
-            <p className="text-muted-foreground text-sm">
+            <p style={{ color: C.muted, fontSize: '0.875rem' }}>
               {canvases.length} workspace{canvases.length !== 1 ? 's' : ''}
             </p>
           </div>
+
           <button
             onClick={handleCreate}
             disabled={creating}
-            className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-xl font-semibold text-sm transition-all shadow-lg hover:shadow-primary/25 active:scale-95 disabled:opacity-70 self-start sm:self-auto"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              padding: '10px 20px',
+              background: C.primaryGrad,
+              border: 'none',
+              borderRadius: '12px',
+              color: '#fff', fontWeight: 600, fontSize: '0.875rem',
+              cursor: creating ? 'not-allowed' : 'pointer',
+              opacity: creating ? 0.7 : 1,
+              boxShadow: '0 4px 24px rgba(6,182,212,0.35)',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => { if (!creating) (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 8px 40px rgba(6,182,212,0.5)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 24px rgba(6,182,212,0.35)'; }}
           >
-            {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            {creating ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Plus style={{ width: '16px', height: '16px' }} />}
             New Canvas
           </button>
         </div>
 
-        {/* Search bar */}
-        <div className="relative mb-8 max-w-sm">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        {/* Search */}
+        <div style={{ position: 'relative', marginBottom: '32px', maxWidth: '320px' }}>
+          <Search style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: searchFocused ? C.primary : C.muted, transition: 'color 0.2s' }} />
           <input
             type="text"
             placeholder="Search canvases…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-muted/50 border border-border rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-muted-foreground/60"
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
+            style={{
+              width: '100%',
+              background: searchFocused ? 'rgba(6,182,212,0.06)' : 'rgba(255,255,255,0.02)',
+              border: `1px solid ${searchFocused ? 'rgba(6,182,212,0.4)' : C.border}`,
+              borderRadius: '12px',
+              padding: '10px 16px 10px 42px',
+              color: C.text,
+              fontSize: '0.875rem',
+              outline: 'none',
+              boxShadow: searchFocused ? '0 0 0 3px rgba(6,182,212,0.12)' : 'none',
+              transition: 'all 0.2s',
+            }}
           />
         </div>
 
-        {/* Canvas Grid */}
+        {/* Grid */}
         {loading ? (
-          <div className="flex items-center justify-center py-32 text-muted-foreground">
-            <Loader2 className="w-8 h-8 animate-spin" />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '128px 0', color: C.muted }}>
+            <Loader2 style={{ width: '32px', height: '32px', animation: 'spin 1s linear infinite' }} />
           </div>
         ) : filtered.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center py-32"
+            style={{ textAlign: 'center', padding: '128px 0' }}
           >
-            <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
-              <LayoutGrid className="w-7 h-7 text-muted-foreground" />
+            <div style={{
+              width: '64px', height: '64px', borderRadius: '18px',
+              background: 'rgba(6,182,212,0.08)', border: `1px solid ${C.border}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 20px',
+            }}>
+              <LayoutGrid style={{ width: '28px', height: '28px', color: C.muted }} />
             </div>
-            <h3 className="text-lg font-semibold mb-2">
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: C.text, marginBottom: '8px' }}>
               {search ? 'No canvases found' : 'No canvases yet'}
             </h3>
-            <p className="text-muted-foreground text-sm mb-6">
+            <p style={{ color: C.muted, fontSize: '0.875rem', marginBottom: '24px' }}>
               {search ? 'Try a different search term' : 'Create your first canvas to get started'}
             </p>
             {!search && (
               <button
                 onClick={handleCreate}
                 disabled={creating}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl font-semibold text-sm transition-all hover:bg-primary/90 shadow-lg hover:shadow-primary/25"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '8px',
+                  padding: '10px 20px',
+                  background: C.primaryGrad,
+                  border: 'none', borderRadius: '12px',
+                  color: '#fff', fontWeight: 600, fontSize: '0.875rem',
+                  cursor: 'pointer', boxShadow: '0 4px 24px rgba(6,182,212,0.35)',
+                }}
               >
-                <Plus className="w-4 h-4" />
+                <Plus style={{ width: '16px', height: '16px' }} />
                 Create Canvas
               </button>
             )}
           </motion.div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '20px' }}>
             {/* New Canvas Card */}
             <motion.button
               initial={{ opacity: 0, scale: 0.95 }}
@@ -191,12 +295,43 @@ export const DashboardPage = () => {
               whileTap={{ scale: 0.98 }}
               onClick={handleCreate}
               disabled={creating}
-              className="group relative h-48 glass border-2 border-dashed border-border/60 hover:border-primary/50 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all hover:shadow-xl hover:shadow-primary/10 disabled:opacity-60"
+              className="group"
+              style={{
+                height: '192px',
+                background: 'rgba(6,182,212,0.03)',
+                border: `2px dashed ${C.border}`,
+                borderRadius: '18px',
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', gap: '12px',
+                cursor: creating ? 'not-allowed' : 'pointer',
+                opacity: creating ? 0.6 : 1,
+                transition: 'all 0.25s',
+              }}
+              onMouseEnter={(e) => {
+                const el = e.currentTarget as HTMLButtonElement;
+                el.style.borderColor = 'rgba(6,182,212,0.4)';
+                el.style.background = 'rgba(6,182,212,0.06)';
+                el.style.boxShadow = '0 8px 40px rgba(6,182,212,0.12)';
+              }}
+              onMouseLeave={(e) => {
+                const el = e.currentTarget as HTMLButtonElement;
+                el.style.borderColor = C.border;
+                el.style.background = 'rgba(6,182,212,0.03)';
+                el.style.boxShadow = 'none';
+              }}
             >
-              <div className="w-12 h-12 rounded-xl bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center transition-colors">
-                {creating ? <Loader2 className="w-6 h-6 text-primary animate-spin" /> : <Plus className="w-6 h-6 text-primary" />}
+              <div style={{
+                width: '48px', height: '48px', borderRadius: '14px',
+                background: 'rgba(6,182,212,0.1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'background 0.2s',
+              }}>
+                {creating
+                  ? <Loader2 style={{ width: '24px', height: '24px', color: C.primary, animation: 'spin 1s linear infinite' }} />
+                  : <Plus style={{ width: '24px', height: '24px', color: C.primary }} />
+                }
               </div>
-              <span className="text-sm font-semibold text-muted-foreground group-hover:text-primary transition-colors">New Canvas</span>
+              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: C.muted }}>New Canvas</span>
             </motion.button>
 
             {/* Canvas Cards */}
@@ -210,46 +345,102 @@ export const DashboardPage = () => {
                   transition={{ delay: i * 0.04 }}
                   whileHover={{ scale: 1.02 }}
                   onClick={() => handleOpen(canvas.id)}
-                  className="group relative h-48 glass border border-border/50 rounded-2xl overflow-hidden cursor-pointer hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10 transition-all"
+                  className="group"
+                  style={{
+                    height: '192px',
+                    background: C.surface,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: '18px',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'all 0.25s',
+                  }}
+                  onMouseEnter={(e) => {
+                    const el = e.currentTarget as HTMLDivElement;
+                    el.style.borderColor = 'rgba(6,182,212,0.35)';
+                    el.style.boxShadow = '0 12px 48px rgba(6,182,212,0.12)';
+                    el.style.background = C.surfaceHover;
+                  }}
+                  onMouseLeave={(e) => {
+                    const el = e.currentTarget as HTMLDivElement;
+                    el.style.borderColor = C.border;
+                    el.style.boxShadow = 'none';
+                    el.style.background = C.surface;
+                  }}
                 >
-                  {/* Canvas preview area */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="absolute inset-0"
-                    style={{
-                      backgroundImage: 'radial-gradient(var(--muted-foreground) 1px, transparent 1px)',
-                      backgroundSize: '24px 24px',
-                      opacity: 0.06,
-                    }}
-                  />
+                  {/* Dot grid pattern */}
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    backgroundImage: 'radial-gradient(rgba(6,182,212,0.3) 1px, transparent 1px)',
+                    backgroundSize: '20px 20px',
+                    opacity: 0.07,
+                  }} />
 
-                  {/* Card Content */}
-                  <div className="relative h-full p-5 flex flex-col justify-between">
-                    <div className="flex items-start justify-between">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                        <PenLine className="w-5 h-5 text-primary" />
+                  {/* Gradient overlay top-right */}
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    background: 'linear-gradient(135deg, rgba(6,182,212,0.06) 0%, transparent 60%, rgba(16,185,129,0.04) 100%)',
+                  }} />
+
+                  {/* Top accent line */}
+                  <div style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
+                    background: `linear-gradient(90deg, ${C.primary}, ${C.secondary})`,
+                    opacity: 0,
+                    transition: 'opacity 0.3s',
+                  }} className="group-hover:opacity-100" />
+
+                  {/* Content */}
+                  <div style={{ position: 'relative', height: '100%', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                      <div style={{
+                        width: '40px', height: '40px', borderRadius: '12px',
+                        background: 'linear-gradient(135deg, rgba(6,182,212,0.15), rgba(16,185,129,0.1))',
+                        border: `1px solid rgba(6,182,212,0.2)`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <PenLine style={{ width: '18px', height: '18px', color: C.primary }} />
                       </div>
-                      {/* Delete button */}
+
                       <button
                         onClick={(e) => handleDelete(e, canvas.id)}
                         disabled={deletingId === canvas.id}
-                        className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-all"
+                        style={{
+                          opacity: 0,
+                          padding: '6px', borderRadius: '8px',
+                          background: 'transparent', border: 'none',
+                          color: C.muted, cursor: 'pointer',
+                          transition: 'all 0.2s',
+                        }}
+                        className="group-hover:opacity-100"
                         title="Delete canvas"
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.1)';
+                          (e.currentTarget as HTMLButtonElement).style.color = '#f87171';
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                          (e.currentTarget as HTMLButtonElement).style.color = C.muted;
+                        }}
                       >
                         {deletingId === canvas.id
-                          ? <Loader2 className="w-4 h-4 animate-spin" />
-                          : <Trash2 className="w-4 h-4" />
+                          ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+                          : <Trash2 style={{ width: '16px', height: '16px' }} />
                         }
                       </button>
                     </div>
 
                     <div>
-                      <h3 className="font-semibold text-base mb-1 truncate">{canvas.name}</h3>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Clock className="w-3 h-3" />
+                      <h3 style={{ fontWeight: 600, fontSize: '0.95rem', color: C.text, marginBottom: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {canvas.name}
+                      </h3>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', color: C.muted }}>
+                          <Clock style={{ width: '11px', height: '11px' }} />
                           {formatDate(canvas.updatedAt)}
                         </div>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+                        <ChevronRight style={{ width: '14px', height: '14px', color: C.muted, opacity: 0, transform: 'translateX(0)', transition: 'all 0.2s' }} className="group-hover:opacity-100 group-hover:translate-x-0.5" />
                       </div>
                     </div>
                   </div>
@@ -259,6 +450,12 @@ export const DashboardPage = () => {
           </div>
         )}
       </main>
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .group-hover\\:opacity-100 { opacity: 0; transition: opacity 0.2s; }
+        .group:hover .group-hover\\:opacity-100 { opacity: 1; }
+      `}</style>
     </div>
   );
 };

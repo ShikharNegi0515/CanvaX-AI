@@ -6,7 +6,7 @@ const app_module_1 = require("./app.module");
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     app.enableCors({
-        origin: ['http://localhost:5173', 'http://localhost:3001'],
+        origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:3001'],
         credentials: true,
     });
     app.useGlobalPipes(new common_1.ValidationPipe({
