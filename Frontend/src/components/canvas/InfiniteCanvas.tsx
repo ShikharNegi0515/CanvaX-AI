@@ -753,6 +753,7 @@ export function InfiniteCanvas() {
           onUpdateElements={updateElements}
           onUpdateDefaultStyle={setDefaultStyle}
           theme={appState.theme}
+          tool={tool}
         />
       )}
 
@@ -882,11 +883,12 @@ export function InfiniteCanvas() {
               maxWidth: '80vw',
               minHeight: (editingElement.fontSize ?? 20) * camera.zoom * 1.5,
               fontSize: (editingElement.fontSize ?? 20) * camera.zoom,
-              fontFamily: editingElement.fontFamily === 'hand'
-                ? 'Caveat, cursive'
-                : editingElement.fontFamily === 'code'
-                  ? '"Courier New", monospace'
-                  : 'Inter, sans-serif',
+              fontFamily: editingElement.fontFamily === 'hand' ? 'Caveat, cursive' :
+                editingElement.fontFamily === 'code' ? '"Courier New", monospace' :
+                editingElement.fontFamily === 'serif' ? 'Georgia, serif' :
+                editingElement.fontFamily === 'comic' ? '"Comic Sans MS", cursive' :
+                editingElement.fontFamily === 'impact' ? 'Impact, sans-serif' :
+                'Inter, sans-serif',
               color: editingElement.strokeColor ?? '#1e1e1e',
               background: 'transparent',
               border: '1px dashed #6965db',

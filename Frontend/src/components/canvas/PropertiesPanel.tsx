@@ -1,4 +1,4 @@
-import { type CanvasElement, type CanvasState } from '../../store/useCanvasStore';
+import { type CanvasElement, type CanvasState, type Tool } from '../../store/useCanvasStore';
 
 interface PropertiesPanelProps {
   selectedElements: CanvasElement[];
@@ -6,6 +6,7 @@ interface PropertiesPanelProps {
   onUpdateElements: (updates: { id: string; attrs: Partial<CanvasElement> }[]) => void;
   onUpdateDefaultStyle: (patch: Partial<CanvasState['defaultStyle']>) => void;
   theme: 'light' | 'dark';
+  tool?: Tool;
 }
 
 const COLORS = ['#1e1e1e', '#e03131', '#2f9e44', '#1971c2', '#f08c00', 'transparent'];
@@ -17,6 +18,7 @@ export function PropertiesPanel({
   onUpdateElements,
   onUpdateDefaultStyle,
   theme,
+  tool,
 }: PropertiesPanelProps) {
   const isDark = theme === 'dark';
   const bg = isDark ? '#232329' : '#ffffff';
@@ -29,6 +31,10 @@ export function PropertiesPanel({
   const currentFillStyle = selectedElements.length > 0 ? selectedElements[0].fillStyle ?? defaultStyle.fillStyle : defaultStyle.fillStyle;
   const currentStrokeWidth = selectedElements.length > 0 ? selectedElements[0].strokeWidth ?? defaultStyle.strokeWidth : defaultStyle.strokeWidth;
   const currentRoughness = selectedElements.length > 0 ? selectedElements[0].roughness ?? defaultStyle.roughness : defaultStyle.roughness;
+  const currentFontSize = selectedElements.length > 0 ? selectedElements[0].fontSize ?? defaultStyle.fontSize : defaultStyle.fontSize;
+  const currentFontFamily = selectedElements.length > 0 ? selectedElements[0].fontFamily ?? defaultStyle.fontFamily : defaultStyle.fontFamily;
+
+  const showTextProperties = tool === 'text' || selectedElements.some(el => el.type === 'text');
 
   const handleChange = <K extends keyof CanvasElement>(key: K, value: any) => {
     if (selectedElements.length > 0) {
@@ -91,6 +97,48 @@ export function PropertiesPanel({
     </div>
   );
 
+  const NumberInput = ({ label, value, onChange }: any) => (
+    <div>
+      <SectionTitle>{label}</SectionTitle>
+      <input 
+        type="number" 
+        value={value} 
+        onChange={(e) => onChange(Number(e.target.value))} 
+        style={{ width: '100%', padding: '6px 8px', borderRadius: 6, border: `1px solid ${border}`, background: isDark ? '#191920' : '#f1f3f5', color: text, outline: 'none' }}
+      />
+    </div>
+  );
+
+  const SelectInput = ({ label, value, onChange, options }: any) => (
+    <div>
+      <SectionTitle>{label}</SectionTitle>
+      <select 
+        value={value} 
+        onChange={(e) => onChange(e.target.value)} 
+        style={{ width: '100%', padding: '6px 8px', borderRadius: 6, border: `1px solid ${border}`, background: isDark ? '#191920' : '#f1f3f5', color: text, outline: 'none' }}
+      >
+        {options.map((opt: any) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+      </select>
+    </div>
+  );
+
+  const toggleList = (type: 'bullet' | 'number') => {
+    if (selectedElements.length > 0) {
+      onUpdateElements(selectedElements.filter(el => el.type === 'text').map(el => {
+        const lines = (el.text ?? '').split('\n');
+        const isAlreadyList = lines.every(line => type === 'bullet' ? line.trim().startsWith('• ') : /^\d+\.\s/.test(line.trim()));
+        
+        const newText = lines.map((line, i) => {
+          let clean = line.replace(/^(• |\d+\.\s)/, '');
+          if (isAlreadyList) return clean; 
+          return type === 'bullet' ? `• ${clean}` : `${i + 1}. ${clean}`;
+        }).join('\n');
+        
+        return { id: el.id, attrs: { text: newText } };
+      }));
+    }
+  };
+
   return (
     <div style={{
       position: 'fixed', top: 60, left: 16, width: 240,
@@ -133,6 +181,42 @@ export function PropertiesPanel({
           { label: 'Cartoon', value: 2 },
         ]}
       />
+
+      {showTextProperties && (
+        <>
+          <NumberInput
+            label="Font Size"
+            value={currentFontSize}
+            onChange={(v: any) => handleChange('fontSize', v)}
+          />
+          <SelectInput
+            label="Font Family"
+            value={currentFontFamily}
+            onChange={(v: any) => handleChange('fontFamily', v)}
+            options={[
+              { label: 'Hand (Caveat)', value: 'hand' },
+              { label: 'Normal (Inter)', value: 'normal' },
+              { label: 'Code (Monospace)', value: 'code' },
+              { label: 'Serif (Georgia)', value: 'serif' },
+              { label: 'Comic (Comic Sans)', value: 'comic' },
+              { label: 'Impact', value: 'impact' },
+            ]}
+          />
+          <SectionTitle>Formatting</SectionTitle>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button 
+              onClick={() => toggleList('bullet')}
+              style={{ flex: 1, padding: '6px', borderRadius: 6, border: `1px solid ${border}`, background: isDark ? '#191920' : '#f1f3f5', color: text, cursor: 'pointer', fontSize: 12 }}>
+              • Bullet
+            </button>
+            <button 
+              onClick={() => toggleList('number')}
+              style={{ flex: 1, padding: '6px', borderRadius: 6, border: `1px solid ${border}`, background: isDark ? '#191920' : '#f1f3f5', color: text, cursor: 'pointer', fontSize: 12 }}>
+              1. Number
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

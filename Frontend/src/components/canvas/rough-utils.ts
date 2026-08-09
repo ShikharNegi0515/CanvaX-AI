@@ -170,6 +170,9 @@ export function drawElement(rc: RC, ctx: CanvasRenderingContext2D, el: CanvasEle
         hand: 'Caveat, cursive',
         normal: 'Inter, sans-serif',
         code: '"Courier New", monospace',
+        serif: 'Georgia, serif',
+        comic: '"Comic Sans MS", cursive',
+        impact: 'Impact, sans-serif',
       };
       const font = fontFamilyMap[el.fontFamily ?? 'hand'] ?? fontFamilyMap['hand'];
       const fontSize = el.fontSize ?? 20;
