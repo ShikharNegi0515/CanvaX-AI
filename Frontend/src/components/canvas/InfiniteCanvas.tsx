@@ -73,6 +73,14 @@ export function InfiniteCanvas() {
   const [textBoxDraft, setTextBoxDraft] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const textBoxStart = useRef<{ x: number; y: number } | null>(null);
 
+  // Marquee selection
+  const [selectionBox, setSelectionBox] = useState<{ x: number, y: number, w: number, h: number } | null>(null);
+  const selectionBoxStart = useRef<{ x: number, y: number } | null>(null);
+
+  // Lasso selection
+  const [lassoPoints, setLassoPoints] = useState<{x: number, y: number}[]>([]);
+  const isLassoing = useRef(false);
+
   // Eraser cursor position (screen coords)
   const [eraserPos, setEraserPos] = useState<{ x: number; y: number } | null>(null);
   const ERASER_RADIUS = 10; // px on screen — matches Excalidraw size
@@ -195,6 +203,7 @@ export function InfiniteCanvas() {
         v: 'select', h: 'hand', r: 'rectangle', d: 'diamond',
         e: 'ellipse', a: 'arrow', l: 'line', p: 'draw',
         t: 'text', f: 'frame', x: 'eraser', k: 'laser',
+        b: 'bucket', o: 'lasso',
       };
       if (e.key === 'i' || e.key === 'I') { openImagePicker(); return; }
       if (e.key === 'Escape') { setTool('select'); setSelectedIds([]); return; }
@@ -384,6 +393,45 @@ export function InfiniteCanvas() {
       }
     });
 
+    // Draw marquee selection
+    if (selectionBox) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(105, 101, 219, 0.08)';
+      ctx.strokeStyle = '#6965db';
+      ctx.lineWidth = 1 / camera.zoom;
+      ctx.fillRect(
+        Math.min(selectionBox.x, selectionBox.x + selectionBox.w),
+        Math.min(selectionBox.y, selectionBox.y + selectionBox.h),
+        Math.abs(selectionBox.w),
+        Math.abs(selectionBox.h)
+      );
+      ctx.strokeRect(
+        Math.min(selectionBox.x, selectionBox.x + selectionBox.w),
+        Math.min(selectionBox.y, selectionBox.y + selectionBox.h),
+        Math.abs(selectionBox.w),
+        Math.abs(selectionBox.h)
+      );
+      ctx.restore();
+    }
+
+    // Draw lasso selection
+    if (lassoPoints.length > 0) {
+      ctx.save();
+      ctx.strokeStyle = '#6965db';
+      ctx.lineWidth = 1 / camera.zoom;
+      ctx.setLineDash([5 / camera.zoom, 5 / camera.zoom]);
+      ctx.beginPath();
+      ctx.moveTo(lassoPoints[0].x, lassoPoints[0].y);
+      for (let i = 1; i < lassoPoints.length; i++) {
+        ctx.lineTo(lassoPoints[i].x, lassoPoints[i].y);
+      }
+      ctx.closePath();
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(105, 101, 219, 0.08)';
+      ctx.fill();
+      ctx.restore();
+    }
+
     // Draw text box draft (while dragging with text tool)
     if (textBoxDraft) {
       const { x, y, w, h } = textBoxDraft;
@@ -421,7 +469,7 @@ export function InfiniteCanvas() {
     });
 
     ctx.restore();
-  }, [elements, camera, selectedIds, erasingIds, hoveredEraserId, editingTextId, textBoxDraft, appState.viewBackgroundColor, renderTrigger, tool, snapLines]);
+  }, [elements, camera, selectedIds, erasingIds, hoveredEraserId, editingTextId, textBoxDraft, selectionBox, lassoPoints, appState.viewBackgroundColor, renderTrigger, tool, snapLines]);
 
   const getHitElement = useCallback((ptr: { x: number, y: number }) => {
     return [...elements].reverse().find(el => {
@@ -510,6 +558,24 @@ export function InfiniteCanvas() {
       return;
     }
 
+    if (tool === 'bucket') {
+      const hit = getHitElement(ptr);
+      if (hit && ['rectangle', 'diamond', 'ellipse', 'draw', 'line', 'arrow'].includes(hit.type)) {
+        updateElement(hit.id, {
+          backgroundColor: defaultStyle.backgroundColor === 'transparent' ? defaultStyle.strokeColor : defaultStyle.backgroundColor,
+          fillStyle: defaultStyle.fillStyle === 'none' ? 'solid' : defaultStyle.fillStyle,
+        });
+        commit();
+      }
+      return;
+    }
+
+    if (tool === 'lasso') {
+      isLassoing.current = true;
+      setLassoPoints([ptr]);
+      return;
+    }
+
     if (tool === 'select' || tool === 'eraser') {
       if (tool === 'eraser') {
         // Start drag-eraser
@@ -584,6 +650,9 @@ export function InfiniteCanvas() {
         setDragStart(ptr);
       } else {
         setSelectedIds([]);
+        selectionBoxStart.current = ptr;
+        setSelectionBox({ x: ptr.x, y: ptr.y, w: 0, h: 0 });
+        setIsDragging(true);
       }
       return;
     }
@@ -635,6 +704,46 @@ export function InfiniteCanvas() {
       const sx = textBoxStart.current.x;
       const sy = textBoxStart.current.y;
       setTextBoxDraft({ x: sx, y: sy, w: ptr.x - sx, h: ptr.y - sy });
+      return;
+    }
+
+    if (tool === 'lasso' && isLassoing.current) {
+      const ptr = getPointer(e);
+      setLassoPoints(prev => [...prev, ptr]);
+      return;
+    }
+
+    // Marquee selection drag
+    if (tool === 'select' && selectionBoxStart.current) {
+      const ptr = getPointer(e);
+      const sx = selectionBoxStart.current.x;
+      const sy = selectionBoxStart.current.y;
+      const w = ptr.x - sx;
+      const h = ptr.y - sy;
+      
+      setSelectionBox({ x: sx, y: sy, w, h });
+      
+      const sLeft = Math.min(sx, sx + w);
+      const sRight = Math.max(sx, sx + w);
+      const sTop = Math.min(sy, sy + h);
+      const sBottom = Math.max(sy, sy + h);
+
+      const newSelectedIds = elements.filter(el => {
+        let ex = el.x ?? 0, ey = el.y ?? 0, ew = el.width ?? 0, eh = el.height ?? 0;
+        if (el.type === 'line' || el.type === 'arrow' || el.type === 'draw') {
+          const xs = (el.points ?? []).filter((_, i) => i % 2 === 0).map(x => x + (el.x ?? 0));
+          const ys = (el.points ?? []).filter((_, i) => i % 2 !== 0).map(y => y + (el.y ?? 0));
+          if (xs.length === 0) return false;
+          ex = Math.min(...xs); ey = Math.min(...ys);
+          ew = Math.max(...xs) - ex; eh = Math.max(...ys) - ey;
+        } else {
+          if (ew < 0) { ex += ew; ew = -ew; }
+          if (eh < 0) { ey += eh; eh = -eh; }
+        }
+        return (ex < sRight && ex + ew > sLeft && ey < sBottom && ey + eh > sTop);
+      }).map(el => el.id);
+      
+      setSelectedIds(newSelectedIds);
       return;
     }
 
@@ -771,6 +880,51 @@ export function InfiniteCanvas() {
 
     if (tool === 'laser' && isLasering.current) {
       isLasering.current = false;
+      return;
+    }
+
+    if (tool === 'lasso' && isLassoing.current) {
+      isLassoing.current = false;
+      
+      // Calculate bounding box of lasso to quickly filter
+      if (lassoPoints.length > 2) {
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        lassoPoints.forEach(p => {
+          if (p.x < minX) minX = p.x;
+          if (p.y < minY) minY = p.y;
+          if (p.x > maxX) maxX = p.x;
+          if (p.y > maxY) maxY = p.y;
+        });
+
+        const newSelectedIds = elements.filter(el => {
+          let ex = el.x ?? 0, ey = el.y ?? 0, ew = el.width ?? 0, eh = el.height ?? 0;
+          if (el.type === 'line' || el.type === 'arrow' || el.type === 'draw') {
+            const xs = (el.points ?? []).filter((_, i) => i % 2 === 0).map(x => x + (el.x ?? 0));
+            const ys = (el.points ?? []).filter((_, i) => i % 2 !== 0).map(y => y + (el.y ?? 0));
+            if (xs.length === 0) return false;
+            ex = Math.min(...xs); ey = Math.min(...ys);
+            ew = Math.max(...xs) - ex; eh = Math.max(...ys) - ey;
+          } else {
+            if (ew < 0) { ex += ew; ew = -ew; }
+            if (eh < 0) { ey += eh; eh = -eh; }
+          }
+          
+          // Simple bounding box intersection for lasso
+          return (ex < maxX && ex + ew > minX && ey < maxY && ey + eh > minY);
+        }).map(el => el.id);
+        
+        setSelectedIds(newSelectedIds);
+      }
+      setLassoPoints([]);
+      setTool('select');
+      return;
+    }
+
+    // Marquee selection end
+    if (selectionBoxStart.current) {
+      selectionBoxStart.current = null;
+      setSelectionBox(null);
+      setIsDragging(false);
       return;
     }
 

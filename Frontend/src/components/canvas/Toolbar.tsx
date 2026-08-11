@@ -2,8 +2,9 @@ import { type Tool } from '../../store/useCanvasStore';
 import {
   MousePointer2, Hand, Square, Diamond, Circle, ArrowRight,
   Minus, Pencil, Type, Image, Eraser, FrameIcon, Undo2, Redo2,
-  Sparkles
+  Sparkles, MoreHorizontal, PaintBucket, Lasso
 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 
 interface ToolbarProps {
   tool: Tool;
@@ -32,10 +33,15 @@ const TOOL_GROUPS: { id: Tool; icon: React.ReactNode; label: string; key: string
   [
     { id: 'text',      icon: <Type size={18}/>,          label: 'Text',      key: 'T' },
     { id: 'image',     icon: <Image size={18}/>,         label: 'Image',     key: 'I' },
-    { id: 'frame',     icon: <FrameIcon size={18}/>,     label: 'Frame',     key: 'F' },
     { id: 'eraser',    icon: <Eraser size={18}/>,        label: 'Eraser',    key: 'X' },
-    { id: 'laser',     icon: <Sparkles size={18}/>,      label: 'Laser',     key: 'K' },
   ],
+];
+
+const MORE_TOOLS: { id: Tool; icon: React.ReactNode; label: string; key: string }[] = [
+  { id: 'frame',     icon: <FrameIcon size={18}/>,     label: 'Frame',     key: 'F' },
+  { id: 'laser',     icon: <Sparkles size={18}/>,      label: 'Laser',     key: 'K' },
+  { id: 'bucket',    icon: <PaintBucket size={18}/>,   label: 'Bucket Fill',key: 'B' },
+  { id: 'lasso',     icon: <Lasso size={18}/>,         label: 'Lasso',     key: 'O' },
 ];
 
 export function Toolbar({ tool, onTool, onUndo, onRedo, canUndo, canRedo, theme, onInsertImage }: ToolbarProps) {
@@ -45,6 +51,23 @@ export function Toolbar({ tool, onTool, onUndo, onRedo, canUndo, canRedo, theme,
   const text   = isDark ? '#c5c5d2' : '#1e1e2e';
   const activeBg = isDark ? '#3d3d4a' : '#ebf4ff';
   const activeColor = '#6965db';
+
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMoreMenuOpen(false);
+      }
+    };
+    if (moreMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [moreMenuOpen]);
 
   const btnBase: React.CSSProperties = {
     width: 36, height: 36, borderRadius: 8,
@@ -90,6 +113,61 @@ export function Toolbar({ tool, onTool, onUndo, onRedo, canUndo, canRedo, theme,
           ))}
         </>
       ))}
+
+      <div ref={menuRef} style={{ position: 'relative' }}>
+        <button
+          title="More tools"
+          onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+          style={{
+            ...btnBase,
+            background: MORE_TOOLS.some(t => t.id === tool) ? activeBg : 'transparent',
+            color: MORE_TOOLS.some(t => t.id === tool) ? activeColor : text,
+          }}
+        >
+          <MoreHorizontal size={18} />
+        </button>
+        {moreMenuOpen && (
+          <div style={{
+            position: 'absolute',
+            top: 'calc(100% + 8px)',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: bg,
+            border: `1px solid ${border}`,
+            borderRadius: 8,
+            padding: 8,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 4,
+            boxShadow: '0 4px 20px rgba(0,0,0,.15)',
+            minWidth: 160,
+          }}>
+            {MORE_TOOLS.map(t => (
+              <button
+                key={t.id}
+                onClick={() => {
+                  onTool(t.id);
+                  setMoreMenuOpen(false);
+                }}
+                style={{
+                  ...btnBase,
+                  width: '100%',
+                  justifyContent: 'flex-start',
+                  padding: '8px 12px',
+                  background: tool === t.id ? activeBg : 'transparent',
+                  color: tool === t.id ? activeColor : text,
+                  gap: 12,
+                  height: 'auto',
+                }}
+              >
+                {t.icon}
+                <span style={{ fontSize: 13, fontWeight: 500 }}>{t.label}</span>
+                <span style={{ marginLeft: 'auto', fontSize: 11, opacity: 0.5 }}>{t.key}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {divider}
 

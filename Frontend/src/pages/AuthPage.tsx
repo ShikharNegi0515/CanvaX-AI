@@ -27,7 +27,7 @@ export const AuthPage = () => {
         : await authApi.register(name, email, password);
 
       setAuth(res.user, res.access_token);
-      navigate('/canvas');
+      navigate('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {

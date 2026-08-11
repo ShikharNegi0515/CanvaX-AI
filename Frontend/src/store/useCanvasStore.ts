@@ -13,7 +13,9 @@ export type Tool =
   | 'image'
   | 'eraser'
   | 'frame'
-  | 'laser';
+  | 'laser'
+  | 'bucket'
+  | 'lasso';
 
 export type StrokeStyle = 'solid' | 'dashed' | 'dotted';
 export type FillStyle = 'solid' | 'hachure' | 'cross-hatch' | 'dots' | 'none';
