@@ -149,20 +149,37 @@ export function drawElement(rc: RC, ctx: CanvasRenderingContext2D, el: CanvasEle
       if (pts.length < 4) break;
       const ox = el.x ?? 0;
       const oy = el.y ?? 0;
-      ctx.save();
-      ctx.strokeStyle = el.strokeColor ?? '#1e1e1e';
-      ctx.lineWidth = el.strokeWidth ?? 2;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      if (el.strokeStyle === 'dashed') ctx.setLineDash([12, 8]);
-      else if (el.strokeStyle === 'dotted') ctx.setLineDash([3, 6]);
-      ctx.beginPath();
-      ctx.moveTo(ox + pts[0], oy + pts[1]);
-      for (let i = 2; i < pts.length; i += 2) {
-        ctx.lineTo(ox + pts[i], oy + pts[i + 1]);
+      // Bucket-fill polygon: roughness===0 and fillStyle===solid means a closed filled region
+      if (el.roughness === 0 && el.fillStyle === 'solid' && el.backgroundColor && el.backgroundColor !== 'transparent') {
+        ctx.save();
+        const bg = el.backgroundColor;
+        ctx.fillStyle = bg;
+        ctx.strokeStyle = bg;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(ox + pts[0], oy + pts[1]);
+        for (let i = 2; i < pts.length; i += 2) {
+          ctx.lineTo(ox + pts[i], oy + pts[i + 1]);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      } else {
+        ctx.save();
+        ctx.strokeStyle = el.strokeColor ?? '#1e1e1e';
+        ctx.lineWidth = el.strokeWidth ?? 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        if (el.strokeStyle === 'dashed') ctx.setLineDash([12, 8]);
+        else if (el.strokeStyle === 'dotted') ctx.setLineDash([3, 6]);
+        ctx.beginPath();
+        ctx.moveTo(ox + pts[0], oy + pts[1]);
+        for (let i = 2; i < pts.length; i += 2) {
+          ctx.lineTo(ox + pts[i], oy + pts[i + 1]);
+        }
+        ctx.stroke();
+        ctx.restore();
       }
-      ctx.stroke();
-      ctx.restore();
       break;
     }
     case 'text': {
@@ -278,23 +295,29 @@ function renderText(ctx: CanvasRenderingContext2D, el: CanvasElement) {
   });
 
   const isShape = el.type !== 'text';
-  let startY = (el.y ?? 0) + padding;
+  let ex = el.x ?? 0;
+  let ey = el.y ?? 0;
+  let ew = el.width ?? 200;
+  let eh = el.height ?? 200;
+  if (ew < 0) { ex += ew; ew = -ew; }
+  if (eh < 0) { ey += eh; eh = -eh; }
+
+  let startY = ey + padding;
   
   if (isShape) {
     const totalHeight = wrappedLines.length * lineHeight;
-    const boxHeight = Math.abs(el.height ?? 200);
-    startY = (el.y ?? 0) + (boxHeight - totalHeight) / 2;
+    startY = ey + (eh - totalHeight) / 2;
   }
   
   ctx.textBaseline = 'top';
   ctx.textAlign = isShape ? 'center' : 'left';
   
   let currentY = startY;
-  const centerX = (el.x ?? 0) + Math.abs(el.width ?? 200) / 2;
+  const centerX = ex + ew / 2;
   
   wrappedLines.forEach(line => {
     if (line !== '') {
-      const startX = isShape ? centerX : (el.x ?? 0) + padding;
+      const startX = isShape ? centerX : ex + padding;
       ctx.fillText(line, startX, currentY);
     }
     currentY += lineHeight;

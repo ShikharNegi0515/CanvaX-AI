@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import rough from 'roughjs';
 import { getStroke } from 'perfect-freehand';
+import { getFloodFillPath } from './floodFill';
 import { useCanvasStore, type CanvasElement, type Tool } from '../../store/useCanvasStore';
 import { drawElement, measureTextDimensions } from './rough-utils';
 import { Toolbar } from './Toolbar';
@@ -16,7 +17,7 @@ export function InfiniteCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const textInputRef = useRef<HTMLTextAreaElement>(null);
   const laserCanvasRef = useRef<HTMLCanvasElement>(null);
-  const laserPoints = useRef<{x: number, y: number, time: number}[]>([]);
+  const laserPoints = useRef<{ x: number, y: number, time: number }[]>([]);
   const isLasering = useRef(false);
   const [clipboard, setClipboard] = useState<CanvasElement[]>([]);
 
@@ -42,7 +43,7 @@ export function InfiniteCanvas() {
 
   // Text editing state
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
-  const [snapLines, setSnapLines] = useState<{x?: number, y?: number}[]>([]);
+  const [snapLines, setSnapLines] = useState<{ x?: number, y?: number }[]>([]);
 
   // Auto-focus AND auto-size textarea when text editing starts
   useEffect(() => {
@@ -78,12 +79,12 @@ export function InfiniteCanvas() {
   const selectionBoxStart = useRef<{ x: number, y: number } | null>(null);
 
   // Lasso selection
-  const [lassoPoints, setLassoPoints] = useState<{x: number, y: number}[]>([]);
+  const [lassoPoints, setLassoPoints] = useState<{ x: number, y: number }[]>([]);
   const isLassoing = useRef(false);
 
   // Eraser cursor position (screen coords)
   const [eraserPos, setEraserPos] = useState<{ x: number; y: number } | null>(null);
-  const ERASER_RADIUS = 10; // px on screen — matches Excalidraw size
+  const ERASER_RADIUS = 7; // px on screen
 
   // Persistence
   const [canvasId, setCanvasId] = useState<string | null>(null);
@@ -230,28 +231,28 @@ export function InfiniteCanvas() {
       const canvas = laserCanvasRef.current;
       const ctx = canvas?.getContext('2d');
       if (!canvas || !ctx) return;
-      
+
       const now = performance.now();
       laserPoints.current = laserPoints.current.filter(p => now - p.time < 1000);
-      
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
+
       if (laserPoints.current.length < 2) return;
-      
+
       const dpr = window.devicePixelRatio || 1;
       const cam = cameraRef.current;
-      
+
       ctx.save();
       ctx.scale(dpr, dpr);
       ctx.translate(cam.x, cam.y);
       ctx.scale(cam.zoom, cam.zoom);
-      
+
       const points = laserPoints.current.map(p => {
         const age = now - p.time;
         const factor = Math.max(0, 1 - (age / 1000));
         return [p.x, p.y, factor];
       });
-      
+
       const stroke = getStroke(points as number[][], {
         size: 4 / cam.zoom,
         thinning: 0,
@@ -259,7 +260,7 @@ export function InfiniteCanvas() {
         streamline: 0.5,
         simulatePressure: false,
       });
-      
+
       if (stroke.length > 0) {
         ctx.beginPath();
         ctx.moveTo(stroke[0][0], stroke[0][1]);
@@ -270,7 +271,7 @@ export function InfiniteCanvas() {
         ctx.fillStyle = '#ff0000';
         ctx.fill();
       }
-      
+
       ctx.restore();
     };
     renderLaser();
@@ -316,10 +317,12 @@ export function InfiniteCanvas() {
 
     // Draw elements
     elements.forEach(el => {
-      // Skip the element currently being edited — the textarea overlay renders it live
-      if (el.id === editingTextId) return;
+      // For pure text elements, skip canvas rendering while editing (textarea overlay handles it).
+      // For shapes (rect/ellipse/diamond), keep drawing the shape background so the border stays visible.
+      const isEditingThisEl = el.id === editingTextId;
+      if (isEditingThisEl && el.type === 'text') return;
 
-      const isSelected = tool === 'select' && selectedIds.includes(el.id);
+      const isSelected = (tool === 'select' && selectedIds.includes(el.id)) || isEditingThisEl;
       const isErasing = erasingIds.has(el.id) || (tool === 'eraser' && el.id === hoveredEraserId);
 
       if (isErasing) {
@@ -515,7 +518,7 @@ export function InfiniteCanvas() {
       }
 
       const pad = 12; // generous padding for easy clicking
-      
+
       if (el.type === 'ellipse') {
         const cx = ex + ew / 2;
         const cy = ey + eh / 2;
@@ -533,10 +536,86 @@ export function InfiniteCanvas() {
         if (rx <= 0 || ry <= 0) return false;
         return (dx / rx) + (dy / ry) <= 1;
       }
-      
+
       return ptr.x >= ex - pad && ptr.x <= ex + ew + pad && ptr.y >= ey - pad && ptr.y <= ey + eh + pad;
     });
   }, [elements]);
+
+  // Helper: distance from point to line segment
+  const distToSeg = (p: {x:number,y:number}, a: {x:number,y:number}, b: {x:number,y:number}) => {
+    const l2 = (a.x-b.x)**2 + (a.y-b.y)**2;
+    if (l2 === 0) return Math.hypot(p.x-a.x, p.y-a.y);
+    let t = ((p.x-a.x)*(b.x-a.x)+(p.y-a.y)*(b.y-a.y))/l2;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(p.x-(a.x+t*(b.x-a.x)), p.y-(a.y+t*(b.y-a.y)));
+  };
+
+  // Eraser-specific hit: only the stroke/border of each shape, not interior fills
+  const getEraserHitElement = useCallback((ptr: { x: number, y: number }) => {
+    const r = (ERASER_RADIUS * 2.5) / camera.zoom; // eraser hit radius in canvas space
+
+    return [...elements].reverse().find(el => {
+      let ex = el.x ?? 0, ey = el.y ?? 0, ew = el.width ?? 0, eh = el.height ?? 0;
+
+      // Bucket-fill polygons (roughness 0, solid fill) → erasable by clicking anywhere inside
+      if (el.roughness === 0 && el.fillStyle === 'solid' && el.type === 'draw') {
+        if (ew < 0) { ex += ew; ew = -ew; }
+        if (eh < 0) { ey += eh; eh = -eh; }
+        return ptr.x >= ex - r && ptr.x <= ex + ew + r && ptr.y >= ey - r && ptr.y <= ey + eh + r;
+      }
+
+      // Lines, arrows, freehand draw → proximity to path
+      if (el.type === 'line' || el.type === 'arrow' || el.type === 'draw') {
+        const pts = el.points ?? [];
+        if (pts.length < 4) return false;
+        const ox = el.x ?? 0, oy = el.y ?? 0;
+        for (let i = 0; i < pts.length - 2; i += 2) {
+          if (distToSeg(ptr,
+            { x: ox + pts[i], y: oy + pts[i+1] },
+            { x: ox + pts[i+2], y: oy + pts[i+3] }
+          ) <= r) return true;
+        }
+        return false;
+      }
+
+      if (ew < 0) { ex += ew; ew = -ew; }
+      if (eh < 0) { ey += eh; eh = -eh; }
+
+      if (el.type === 'ellipse') {
+        const cx = ex + ew / 2, cy = ey + eh / 2;
+        const rx = ew / 2, ry = eh / 2;
+        if (rx <= 0 || ry <= 0) return false;
+        // Near the ellipse circumference: between inner and outer ellipse
+        const rxO = rx + r, ryO = ry + r;
+        const rxI = Math.max(1, rx - r), ryI = Math.max(1, ry - r);
+        const normO = (ptr.x-cx)**2/rxO**2 + (ptr.y-cy)**2/ryO**2;
+        const normI = (ptr.x-cx)**2/rxI**2 + (ptr.y-cy)**2/ryI**2;
+        return normO <= 1 && normI >= 1;
+      }
+
+      if (el.type === 'diamond') {
+        const top    = { x: ex + ew/2, y: ey };
+        const right  = { x: ex + ew,   y: ey + eh/2 };
+        const bottom = { x: ex + ew/2, y: ey + eh };
+        const left   = { x: ex,        y: ey + eh/2 };
+        return [[top,right],[right,bottom],[bottom,left],[left,top]].some(
+          ([a, b]) => distToSeg(ptr, a, b) <= r
+        );
+      }
+
+      // Rectangle, frame → near any of the 4 edges
+      if (el.type === 'rectangle' || el.type === 'frame') {
+        const tl = {x:ex,y:ey}, tr = {x:ex+ew,y:ey};
+        const bl = {x:ex,y:ey+eh}, br = {x:ex+ew,y:ey+eh};
+        return [[tl,tr],[tr,br],[br,bl],[bl,tl]].some(
+          ([a, b]) => distToSeg(ptr, a, b) <= r
+        );
+      }
+
+      // Text, image → bounding box (they don't have a stroke border to aim at)
+      return ptr.x >= ex - r && ptr.x <= ex + ew + r && ptr.y >= ey - r && ptr.y <= ey + eh + r;
+    });
+  }, [elements, camera.zoom, ERASER_RADIUS]);
 
   // --- Handlers ---
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -559,6 +638,61 @@ export function InfiniteCanvas() {
     }
 
     if (tool === 'bucket') {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        const sx = Math.floor((e.clientX - rect.left) * dpr);
+        const sy = Math.floor((e.clientY - rect.top) * dpr);
+
+        // We must use an offscreen context or standard context, but since this is 
+        // already drawn, we can use it. But wait, reading canvas that is being rendered is OK.
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (ctx) {
+          const path = getFloodFillPath(ctx, sx, sy, canvas.width, canvas.height);
+          if (path) {
+            const cam = camera;
+            const convertedPath = path.map((val, i) => {
+              if (i % 2 === 0) return (val / dpr - cam.x) / cam.zoom;
+              return (val / dpr - cam.y) / cam.zoom;
+            });
+
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            for (let i = 0; i < convertedPath.length; i += 2) {
+              if (convertedPath[i] < minX) minX = convertedPath[i];
+              if (convertedPath[i] > maxX) maxX = convertedPath[i];
+              if (convertedPath[i + 1] < minY) minY = convertedPath[i + 1];
+              if (convertedPath[i + 1] > maxY) maxY = convertedPath[i + 1];
+            }
+
+            for (let i = 0; i < convertedPath.length; i += 2) {
+              convertedPath[i] -= minX;
+              convertedPath[i + 1] -= minY;
+            }
+
+            const fillColor = defaultStyle.backgroundColor === 'transparent' ? defaultStyle.strokeColor : defaultStyle.backgroundColor;
+            addElement({
+              id: crypto.randomUUID(),
+              type: 'draw',
+              x: minX,
+              y: minY,
+              points: convertedPath,
+              width: maxX - minX,
+              height: maxY - minY,
+              ...defaultStyle,
+              strokeColor: fillColor,
+              backgroundColor: fillColor,
+              fillStyle: 'solid',
+              roughness: 0,
+            });
+            commit();
+            // Stay on bucket tool
+            return;
+          }
+        }
+      }
+
+      // Fallback if floodfill failed: just click-fill the shape
       const hit = getHitElement(ptr);
       if (hit && ['rectangle', 'diamond', 'ellipse', 'draw', 'line', 'arrow'].includes(hit.type)) {
         updateElement(hit.id, {
@@ -566,6 +700,7 @@ export function InfiniteCanvas() {
           fillStyle: defaultStyle.fillStyle === 'none' ? 'solid' : defaultStyle.fillStyle,
         });
         commit();
+        // Stay on bucket tool
       }
       return;
     }
@@ -581,7 +716,7 @@ export function InfiniteCanvas() {
         // Start drag-eraser
         isEraserDragging.current = true;
         // Also immediately mark hovered element
-        const hit = getHitElement(ptr);
+        const hit = getEraserHitElement(ptr);
         if (hit) setErasingIds(prev => new Set([...prev, hit.id]));
         return;
       }
@@ -627,7 +762,7 @@ export function InfiniteCanvas() {
             const fRight = Math.max(fx, fx + fw);
             const fTop = Math.min(fy, fy + fh);
             const fBottom = Math.max(fy, fy + fh);
-            
+
             elements.forEach(child => {
               if (child.id !== hit.id) {
                 const cx = child.x ?? 0;
@@ -688,7 +823,7 @@ export function InfiniteCanvas() {
 
       if (!isEraserDragging.current) {
         const ptr = getPointer(e);
-        const hit = getHitElement(ptr);
+        const hit = getEraserHitElement(ptr);
         setHoveredEraserId(hit ? hit.id : null);
       } else {
         setHoveredEraserId(null);
@@ -720,9 +855,9 @@ export function InfiniteCanvas() {
       const sy = selectionBoxStart.current.y;
       const w = ptr.x - sx;
       const h = ptr.y - sy;
-      
+
       setSelectionBox({ x: sx, y: sy, w, h });
-      
+
       const sLeft = Math.min(sx, sx + w);
       const sRight = Math.max(sx, sx + w);
       const sTop = Math.min(sy, sy + h);
@@ -742,7 +877,7 @@ export function InfiniteCanvas() {
         }
         return (ex < sRight && ex + ew > sLeft && ey < sBottom && ey + eh > sTop);
       }).map(el => el.id);
-      
+
       setSelectedIds(newSelectedIds);
       return;
     }
@@ -765,7 +900,7 @@ export function InfiniteCanvas() {
     // Drag eraser: accumulate elements under cursor
     if (tool === 'eraser' && isEraserDragging.current) {
       const ptr = getPointer(e);
-      const hit = getHitElement(ptr);
+      const hit = getEraserHitElement(ptr);
       if (hit) {
         setErasingIds(prev => {
           if (prev.has(hit.id)) return prev;
@@ -803,7 +938,7 @@ export function InfiniteCanvas() {
       let dx = ptr.x - dragStart.x;
       let dy = ptr.y - dragStart.y;
 
-      const newSnapLines: {x?: number, y?: number}[] = [];
+      const newSnapLines: { x?: number, y?: number }[] = [];
       if (selectedIds.length === 1 && !e.altKey) {
         const id = selectedIds[0];
         const el = elements.find(e => e.id === id);
@@ -814,10 +949,10 @@ export function InfiniteCanvas() {
           const nh = el.height ?? 0;
           const centerNx = nx + nw / 2;
           const centerNy = ny + nh / 2;
-          
+
           let snappedX = false;
           let snappedY = false;
-          
+
           elements.forEach(other => {
             if (other.id === id || selectedIds.includes(other.id)) return;
             const ox = other.x ?? 0;
@@ -826,19 +961,19 @@ export function InfiniteCanvas() {
             const oh = other.height ?? 0;
             const centerOx = ox + ow / 2;
             const centerOy = oy + oh / 2;
-            
+
             const threshold = 5 / camera.zoom;
-            
+
             if (!snappedX && Math.abs(centerNx - centerOx) < threshold) { dx = centerOx - nw / 2 - (el.x ?? 0); newSnapLines.push({ x: centerOx }); snappedX = true; }
             if (!snappedY && Math.abs(centerNy - centerOy) < threshold) { dy = centerOy - nh / 2 - (el.y ?? 0); newSnapLines.push({ y: centerOy }); snappedY = true; }
-            
-            if (!snappedX && Math.abs(nx - ox) < threshold) { dx = ox - (el.x ?? 0); newSnapLines.push({x: ox}); snappedX = true; }
-            if (!snappedY && Math.abs(ny - oy) < threshold) { dy = oy - (el.y ?? 0); newSnapLines.push({y: oy}); snappedY = true; }
-            
+
+            if (!snappedX && Math.abs(nx - ox) < threshold) { dx = ox - (el.x ?? 0); newSnapLines.push({ x: ox }); snappedX = true; }
+            if (!snappedY && Math.abs(ny - oy) < threshold) { dy = oy - (el.y ?? 0); newSnapLines.push({ y: oy }); snappedY = true; }
+
             const rightNx = nx + nw; const rightOx = ox + ow;
             const bottomNy = ny + nh; const bottomOy = oy + oh;
-            if (!snappedX && Math.abs(rightNx - rightOx) < threshold) { dx = rightOx - nw - (el.x ?? 0); newSnapLines.push({x: rightOx}); snappedX = true; }
-            if (!snappedY && Math.abs(bottomNy - bottomOy) < threshold) { dy = bottomOy - nh - (el.y ?? 0); newSnapLines.push({y: bottomOy}); snappedY = true; }
+            if (!snappedX && Math.abs(rightNx - rightOx) < threshold) { dx = rightOx - nw - (el.x ?? 0); newSnapLines.push({ x: rightOx }); snappedX = true; }
+            if (!snappedY && Math.abs(bottomNy - bottomOy) < threshold) { dy = bottomOy - nh - (el.y ?? 0); newSnapLines.push({ y: bottomOy }); snappedY = true; }
           });
         }
       }
@@ -885,7 +1020,7 @@ export function InfiniteCanvas() {
 
     if (tool === 'lasso' && isLassoing.current) {
       isLassoing.current = false;
-      
+
       // Calculate bounding box of lasso to quickly filter
       if (lassoPoints.length > 2) {
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -908,11 +1043,11 @@ export function InfiniteCanvas() {
             if (ew < 0) { ex += ew; ew = -ew; }
             if (eh < 0) { ey += eh; eh = -eh; }
           }
-          
+
           // Simple bounding box intersection for lasso
           return (ex < maxX && ex + ew > minX && ey < maxY && ey + eh > minY);
         }).map(el => el.id);
-        
+
         setSelectedIds(newSelectedIds);
       }
       setLassoPoints([]);
@@ -940,11 +1075,11 @@ export function InfiniteCanvas() {
         const x = draft.w < 0 ? draft.x + draft.w : draft.x;
         const y = draft.h < 0 ? draft.y + draft.h : draft.y;
         const id = crypto.randomUUID();
-        
+
         const autoSize = absW < 20;
         const finalW = autoSize ? 20 : absW;
         const finalH = absH < 20 ? (defaultStyle.fontSize ?? 20) * 1.5 : absH;
-        
+
         addElement({
           id, type: 'text', x, y, width: finalW, height: finalH,
           text: '', autoSize, ...defaultStyle
@@ -1101,6 +1236,20 @@ export function InfiniteCanvas() {
       setEditingTextId(hit.id);
       setTool('select');
       setSelectedIds([hit.id]);
+    } else if (!hit && tool === 'select') {
+      // Double click on empty canvas space → create a new text element here
+      const id = crypto.randomUUID();
+      const newEl: CanvasElement = {
+        id, type: 'text', x: ptr.x, y: ptr.y,
+        width: 20, height: (defaultStyle.fontSize ?? 20) * 1.5,
+        text: '', autoSize: true, ...defaultStyle
+      };
+      addElement(newEl);
+      setSelectedIds([id]);
+      // Delay setEditingTextId by one frame so the element is in the DOM
+      requestAnimationFrame(() => {
+        setEditingTextId(id);
+      });
     }
   };
 
@@ -1185,13 +1334,14 @@ export function InfiniteCanvas() {
           cursor:
             tool === 'hand' || isPanning ? 'grab' :
               tool === 'laser' ? 'crosshair' :
-              tool === 'eraser' ? 'none' :
-                tool === 'text' ? 'text' :
-                  tool === 'select' ? 'default' :
-                    'crosshair',
+                tool === 'eraser' ? 'none' :
+                  tool === 'bucket' ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 32 32'%3E%3Cpath d='M12 9 L23 20 L12 31 L1 20 Z' fill='none' stroke='%231e1e1e' stroke-width='2.2' stroke-linejoin='miter'/%3E%3Cline x1='2' y1='12' x2='16' y2='12' stroke='%231e1e1e' stroke-width='2.2' stroke-linecap='square'/%3E%3Cpath d='M5 12 L5 8 Q5 5 8 5 Q11 5 11 8 L11 12' fill='none' stroke='%231e1e1e' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Crect x='13' y='8' width='4' height='5' fill='none' stroke='%231e1e1e' stroke-width='2'/%3E%3Cpath d='M28 24 C28 29 26 32 24 32 C22 32 20 29 20 24 C20 20 24 16 24 16 C24 16 28 20 28 24 Z' fill='none' stroke='%231e1e1e' stroke-width='2'/%3E%3C/svg%3E") 3 15, crosshair` :
+                    tool === 'text' ? 'text' :
+                      tool === 'select' ? 'default' :
+                        'crosshair',
         }}
       />
-      
+
       <canvas
         ref={laserCanvasRef}
         style={{
@@ -1222,25 +1372,32 @@ export function InfiniteCanvas() {
         />
       )}
 
-      {editingTextId && editingElement && (
-        <div
-          style={{
-            position: 'absolute',
-            left: (editingElement.x ?? 0) * camera.zoom + camera.x,
-            top: (editingElement.y ?? 0) * camera.zoom + camera.y,
-            width: editingElement.type !== 'text' ? Math.abs(editingElement.width ?? 0) * camera.zoom : undefined,
-            height: editingElement.type !== 'text' ? Math.abs(editingElement.height ?? 0) * camera.zoom : undefined,
-            zIndex: 400,
-            pointerEvents: 'none', // wrapper ignores clicks
-            display: editingElement.type !== 'text' ? 'flex' : 'block',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
+      {editingTextId && editingElement ? (() => {
+        let ex = editingElement.x ?? 0;
+        let ey = editingElement.y ?? 0;
+        let ew = editingElement.width ?? 0;
+        let eh = editingElement.height ?? 0;
+        if (ew < 0) { ex += ew; ew = -ew; }
+        if (eh < 0) { ey += eh; eh = -eh; }
+
+        return (
+          <div
+            style={{
+              position: 'absolute',
+              left: ex * camera.zoom + camera.x,
+              top: ey * camera.zoom + camera.y,
+              width: editingElement.type !== 'text' ? ew * camera.zoom : undefined,
+              height: editingElement.type !== 'text' ? eh * camera.zoom : undefined,
+              zIndex: 400,
+              pointerEvents: 'none', // wrapper ignores clicks
+              display: editingElement.type !== 'text' ? 'flex' : 'block',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
           <textarea
             ref={textInputRef}
             value={editingElement.text ?? ''}
-            placeholder="Type here..."
             onChange={e => {
               const ta = e.target;
               if (editingElement.type !== 'text') {
@@ -1256,7 +1413,7 @@ export function InfiniteCanvas() {
               }
 
               const dims = measureTextDimensions(e.target.value, editingElement);
-              
+
               updateElement(editingTextId, {
                 text: e.target.value,
                 height: dims.height,
@@ -1305,15 +1462,18 @@ export function InfiniteCanvas() {
               fontSize: (editingElement.fontSize ?? 20) * camera.zoom,
               fontFamily: editingElement.fontFamily === 'hand' ? 'Caveat, cursive' :
                 editingElement.fontFamily === 'code' ? '"Courier New", monospace' :
-                editingElement.fontFamily === 'serif' ? 'Georgia, serif' :
-                editingElement.fontFamily === 'comic' ? '"Comic Sans MS", cursive' :
-                editingElement.fontFamily === 'impact' ? 'Impact, sans-serif' :
-                'Inter, sans-serif',
-              color: editingElement.strokeColor ?? '#1e1e1e',
+                  editingElement.fontFamily === 'serif' ? 'Georgia, serif' :
+                    editingElement.fontFamily === 'comic' ? '"Comic Sans MS", cursive' :
+                      editingElement.fontFamily === 'impact' ? 'Impact, sans-serif' :
+                        'Inter, sans-serif',
+              // For shapes: text is rendered by canvas, so make textarea text invisible
+              color: editingElement.type === 'text' ? (editingElement.strokeColor ?? '#1e1e1e') : 'transparent',
+              caretColor: editingElement.strokeColor ?? '#1e1e1e',
               background: 'transparent',
-              border: editingElement.type === 'text' ? '1px dashed #6965db' : 'none',
+              // For shapes: no visible border (canvas draws the shape border)
+              border: 'none',
               outline: 'none',
-              resize: editingElement.type === 'text' ? 'horizontal' : 'none',
+              resize: 'none',
               overflow: 'hidden',
               padding: '4px',
               margin: 0,
@@ -1322,12 +1482,12 @@ export function InfiniteCanvas() {
               wordWrap: 'break-word',
               boxSizing: 'border-box',
               textAlign: editingElement.type === 'text' ? 'left' : 'center',
-              caretColor: editingElement.strokeColor ?? '#1e1e1e',
               pointerEvents: 'auto',
             }}
           />
         </div>
-      )}
+        );
+      })() : null}
     </div>
   );
 }
