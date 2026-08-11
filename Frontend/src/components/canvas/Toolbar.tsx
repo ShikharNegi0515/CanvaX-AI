@@ -2,6 +2,7 @@ import { type Tool } from '../../store/useCanvasStore';
 import {
   MousePointer2, Hand, Square, Diamond, Circle, ArrowRight,
   Minus, Pencil, Type, Image, Eraser, FrameIcon, Undo2, Redo2,
+  Sparkles
 } from 'lucide-react';
 
 interface ToolbarProps {
@@ -33,6 +34,7 @@ const TOOL_GROUPS: { id: Tool; icon: React.ReactNode; label: string; key: string
     { id: 'image',     icon: <Image size={18}/>,         label: 'Image',     key: 'I' },
     { id: 'frame',     icon: <FrameIcon size={18}/>,     label: 'Frame',     key: 'F' },
     { id: 'eraser',    icon: <Eraser size={18}/>,        label: 'Eraser',    key: 'X' },
+    { id: 'laser',     icon: <Sparkles size={18}/>,      label: 'Laser',     key: 'K' },
   ],
 ];
 

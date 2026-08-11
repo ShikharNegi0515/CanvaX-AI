@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import rough from 'roughjs';
+import { getStroke } from 'perfect-freehand';
 import { useCanvasStore, type CanvasElement, type Tool } from '../../store/useCanvasStore';
 import { drawElement, measureTextDimensions } from './rough-utils';
 import { Toolbar } from './Toolbar';
 import { PropertiesPanel } from './PropertiesPanel';
 import { HamburgerMenu } from './HamburgerMenu';
 import { canvasApi } from '../../lib/api';
+import { exportCanvasToPNG, exportCanvasToSVG } from '../../lib/export-utils';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Loader2 } from 'lucide-react';
 
@@ -13,6 +15,9 @@ export function InfiniteCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const textInputRef = useRef<HTMLTextAreaElement>(null);
+  const laserCanvasRef = useRef<HTMLCanvasElement>(null);
+  const laserPoints = useRef<{x: number, y: number, time: number}[]>([]);
+  const isLasering = useRef(false);
   const [clipboard, setClipboard] = useState<CanvasElement[]>([]);
 
   const {
@@ -189,7 +194,7 @@ export function InfiniteCanvas() {
       const map: Record<string, Tool> = {
         v: 'select', h: 'hand', r: 'rectangle', d: 'diamond',
         e: 'ellipse', a: 'arrow', l: 'line', p: 'draw',
-        t: 'text', f: 'frame', x: 'eraser',
+        t: 'text', f: 'frame', x: 'eraser', k: 'laser',
       };
       if (e.key === 'i' || e.key === 'I') { openImagePicker(); return; }
       if (e.key === 'Escape') { setTool('select'); setSelectedIds([]); return; }
@@ -208,6 +213,61 @@ export function InfiniteCanvas() {
     return () => window.removeEventListener('keydown', onKey);
   }, [elements, selectedIds, editingTextId, undo, redo, setTool, setSelectedIds, setElements, commit, openImagePicker, clipboard]);
 
+  // Laser Pointer Loop
+  useEffect(() => {
+    let animationFrameId: number;
+    const renderLaser = () => {
+      animationFrameId = requestAnimationFrame(renderLaser);
+      const canvas = laserCanvasRef.current;
+      const ctx = canvas?.getContext('2d');
+      if (!canvas || !ctx) return;
+      
+      const now = performance.now();
+      laserPoints.current = laserPoints.current.filter(p => now - p.time < 1000);
+      
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      if (laserPoints.current.length < 2) return;
+      
+      const dpr = window.devicePixelRatio || 1;
+      const cam = cameraRef.current;
+      
+      ctx.save();
+      ctx.scale(dpr, dpr);
+      ctx.translate(cam.x, cam.y);
+      ctx.scale(cam.zoom, cam.zoom);
+      
+      const points = laserPoints.current.map(p => {
+        const age = now - p.time;
+        const factor = Math.max(0, 1 - (age / 1000));
+        return [p.x, p.y, factor];
+      });
+      
+      const stroke = getStroke(points as number[][], {
+        size: 4 / cam.zoom,
+        thinning: 0,
+        smoothing: 0.5,
+        streamline: 0.5,
+        simulatePressure: false,
+      });
+      
+      if (stroke.length > 0) {
+        ctx.beginPath();
+        ctx.moveTo(stroke[0][0], stroke[0][1]);
+        for (let i = 1; i < stroke.length; i++) {
+          ctx.lineTo(stroke[i][0], stroke[i][1]);
+        }
+        ctx.closePath();
+        ctx.fillStyle = '#ff0000';
+        ctx.fill();
+      }
+      
+      ctx.restore();
+    };
+    renderLaser();
+    return () => cancelAnimationFrame(animationFrameId);
+  }, []);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -223,6 +283,14 @@ export function InfiniteCanvas() {
     canvas.style.width = `${rect.width}px`;
     canvas.style.height = `${rect.height}px`;
 
+    const lCanvas = laserCanvasRef.current;
+    if (lCanvas) {
+      lCanvas.width = rect.width * dpr;
+      lCanvas.height = rect.height * dpr;
+      lCanvas.style.width = `${rect.width}px`;
+      lCanvas.style.height = `${rect.height}px`;
+    }
+
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, rect.width, rect.height);
 
@@ -234,7 +302,7 @@ export function InfiniteCanvas() {
     ctx.scale(camera.zoom, camera.zoom);
 
     // Handle CJS interop for roughjs if necessary
-    const roughInstance = rough.canvas ? rough : (rough as any).default;
+    const roughInstance = typeof (rough as any).canvas === 'function' ? rough : (rough as any).default;
     const rc = roughInstance.canvas(canvas);
 
     // Draw elements
@@ -399,6 +467,25 @@ export function InfiniteCanvas() {
       }
 
       const pad = 12; // generous padding for easy clicking
+      
+      if (el.type === 'ellipse') {
+        const cx = ex + ew / 2;
+        const cy = ey + eh / 2;
+        const rx = ew / 2 + pad;
+        const ry = eh / 2 + pad;
+        if (rx <= 0 || ry <= 0) return false;
+        return Math.pow(ptr.x - cx, 2) / Math.pow(rx, 2) + Math.pow(ptr.y - cy, 2) / Math.pow(ry, 2) <= 1;
+      } else if (el.type === 'diamond') {
+        const cx = ex + ew / 2;
+        const cy = ey + eh / 2;
+        const dx = Math.abs(ptr.x - cx);
+        const dy = Math.abs(ptr.y - cy);
+        const rx = ew / 2 + pad;
+        const ry = eh / 2 + pad;
+        if (rx <= 0 || ry <= 0) return false;
+        return (dx / rx) + (dy / ry) <= 1;
+      }
+      
       return ptr.x >= ex - pad && ptr.x <= ex + ew + pad && ptr.y >= ey - pad && ptr.y <= ey + eh + pad;
     });
   }, [elements]);
@@ -414,6 +501,12 @@ export function InfiniteCanvas() {
 
     if (e.button === 1 || tool === 'hand' || e.shiftKey && e.button === 0) {
       setIsPanning(true);
+      return;
+    }
+
+    if (tool === 'laser') {
+      isLasering.current = true;
+      laserPoints.current = [{ x: ptr.x, y: ptr.y, time: performance.now() }];
       return;
     }
 
@@ -545,6 +638,12 @@ export function InfiniteCanvas() {
       return;
     }
 
+    if (tool === 'laser' && isLasering.current) {
+      const ptr = getPointer(e);
+      laserPoints.current.push({ x: ptr.x, y: ptr.y, time: performance.now() });
+      return;
+    }
+
     if (isPanning) {
       setCamera(c => ({
         ...c,
@@ -666,9 +765,14 @@ export function InfiniteCanvas() {
     }
   };
 
-  const handlePointerUp = (e: React.PointerEvent) => {
+  const handlePointerUp = (_e: React.PointerEvent) => {
     setIsPanning(false);
     setSnapLines([]);
+
+    if (tool === 'laser' && isLasering.current) {
+      isLasering.current = false;
+      return;
+    }
 
     // Text box drag complete — create element with those dimensions
     if (tool === 'text' && textBoxStart.current) {
@@ -846,6 +950,14 @@ export function InfiniteCanvas() {
     }
   };
 
+  const handleExportPNG = async () => {
+    await exportCanvasToPNG(elements, appState.viewBackgroundColor);
+  };
+
+  const handleExportSVG = async () => {
+    await exportCanvasToSVG(elements, appState.viewBackgroundColor);
+  };
+
   return (
     <div ref={containerRef} style={{ width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative', background: appState.viewBackgroundColor, touchAction: 'none' }}>
 
@@ -918,10 +1030,22 @@ export function InfiniteCanvas() {
           touchAction: 'none',
           cursor:
             tool === 'hand' || isPanning ? 'grab' :
+              tool === 'laser' ? 'crosshair' :
               tool === 'eraser' ? 'none' :
                 tool === 'text' ? 'text' :
                   tool === 'select' ? 'default' :
                     'crosshair',
+        }}
+      />
+      
+      <canvas
+        ref={laserCanvasRef}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          pointerEvents: 'none',
+          zIndex: 100
         }}
       />
 
@@ -977,7 +1101,6 @@ export function InfiniteCanvas() {
                 ta.style.width = ta.scrollWidth + 'px';
               }
 
-              const cam = cameraRef.current;
               const dims = measureTextDimensions(e.target.value, editingElement);
               
               updateElement(editingTextId, {
@@ -986,11 +1109,11 @@ export function InfiniteCanvas() {
                 ...(editingElement.autoSize ? { width: dims.width } : {})
               });
             }}
-            onMouseUp={(e) => {
+            onMouseUp={() => {
               if (textInputRef.current && editingElement.type === 'text') {
                 const cam = cameraRef.current;
                 const newWidth = textInputRef.current.offsetWidth / cam.zoom;
-                if (newWidth !== Math.abs(editingElement.width ?? 0)) {
+                if (Math.abs(newWidth - Math.abs(editingElement.width ?? 0)) > 5) {
                   updateElement(editingTextId, { width: newWidth, autoSize: false });
                 }
               }
