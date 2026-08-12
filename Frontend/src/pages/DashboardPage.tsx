@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Trash2, Cpu, LogOut, PenLine,
-  Clock, LayoutGrid, Search, ChevronRight, Loader2,
+  Clock, LayoutGrid, Search, ChevronRight, Loader2, Users,
 } from 'lucide-react';
 import { canvasApi, type CanvasData } from '../lib/api';
 import { useAuthStore } from '../store/useAuthStore';
@@ -446,13 +446,31 @@ export const DashboardPage = () => {
                     </div>
 
                     <div>
-                      <h3 style={{ fontWeight: 600, fontSize: '0.95rem', color: C.text, marginBottom: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <h3 style={{ fontWeight: 600, fontSize: '0.95rem', color: C.text, marginBottom: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         {canvas.name}
+                        {canvas.userId !== user?.id && (
+                          <span style={{ fontSize: '0.65rem', padding: '2px 6px', background: 'rgba(6,182,212,0.15)', color: '#06b6d4', borderRadius: '4px', fontWeight: 600 }}>Shared</span>
+                        )}
                       </h3>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', color: C.muted }}>
-                          <Clock style={{ width: '11px', height: '11px' }} />
-                          {formatDate(canvas.updatedAt)}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: C.muted }}>
+                            <Clock style={{ width: '11px', height: '11px' }} />
+                            {formatDate(canvas.updatedAt)}
+                          </div>
+                          
+                          {/* Collab indicator */}
+                          {(canvas.collaborators && canvas.collaborators.length > 0) && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.75rem', color: C.muted }} title={`Shared with ${canvas.collaborators.map(c => c.name || c.email).join(', ')}`}>
+                              <Users style={{ width: '11px', height: '11px' }} />
+                              {canvas.collaborators.length}
+                            </div>
+                          )}
+                          {(canvas.userId !== user?.id && canvas.user) && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.7rem', color: C.muted }} title={`Owner: ${canvas.user.name || canvas.user.email}`}>
+                              by {canvas.user.name || canvas.user.email?.split('@')[0]}
+                            </div>
+                          )}
                         </div>
                         <ChevronRight style={{ width: '14px', height: '14px', color: C.muted, opacity: 0, transform: 'translateX(0)', transition: 'all 0.2s' }} className="group-hover:opacity-100 group-hover:translate-x-0.5" />
                       </div>

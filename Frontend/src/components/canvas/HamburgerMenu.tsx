@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Menu, FolderOpen, Save, Moon, Sun, LogIn, LogOut, Plus, Download, Image } from 'lucide-react';
+import { Menu, Home, FolderOpen, Save, Moon, Sun, LogIn, LogOut, Plus, Download, Image } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
 
@@ -64,8 +64,8 @@ export function HamburgerMenu({ theme, onThemeToggle, onClear, onExportPNG, onEx
             display: 'flex', flexDirection: 'column'
           }}
         >
-          <MenuItem icon={<FolderOpen size={16} />} label="Open" />
-          <MenuItem icon={<Save size={16} />} label="Save to..." />
+          <MenuItem icon={<Home size={16} />} label="Back to Dashboard" onClick={() => navigate('/')} />
+          <div style={{ height: 1, background: border, margin: '8px 0' }} />
           <MenuItem icon={<Image size={16} />} label="Export as PNG" onClick={onExportPNG} />
           <MenuItem icon={<Download size={16} />} label="Export as SVG" onClick={onExportSVG} />
           <div style={{ height: 1, background: border, margin: '8px 0' }} />

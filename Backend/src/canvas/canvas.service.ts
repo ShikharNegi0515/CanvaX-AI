@@ -14,23 +14,48 @@ export class CanvasService {
 
   async findAll(userId: string) {
     return this.prisma.canvas.findMany({
-      where: { userId },
+      where: {
+        OR: [
+          { userId },
+          { collaborators: { some: { id: userId } } }
+        ]
+      },
       orderBy: { updatedAt: 'desc' },
-      select: { id: true, name: true, thumbnail: true, updatedAt: true, createdAt: true },
+      select: { 
+        id: true, 
+        name: true, 
+        thumbnail: true, 
+        updatedAt: true, 
+        createdAt: true,
+        user: { select: { id: true, name: true, email: true } },
+        collaborators: { select: { id: true, name: true, email: true } }
+      },
     });
   }
 
   async findOne(id: string, userId: string) {
-    const canvas = await this.prisma.canvas.findUnique({ where: { id } });
+    const canvas = await this.prisma.canvas.findUnique({ 
+      where: { id },
+      include: { collaborators: true }
+    });
+    
     if (!canvas) throw new NotFoundException('Canvas not found');
-    if (canvas.userId !== userId) throw new ForbiddenException();
+    
+    // If the user is not the owner and not already a collaborator, add them
+    if (canvas.userId !== userId && !canvas.collaborators.some(c => c.id === userId)) {
+      await this.prisma.canvas.update({
+        where: { id },
+        data: { collaborators: { connect: { id: userId } } }
+      });
+    }
+    
     return canvas;
   }
 
   async save(id: string, userId: string, dto: SaveCanvasDto) {
     const canvas = await this.prisma.canvas.findUnique({ where: { id } });
     if (!canvas) throw new NotFoundException('Canvas not found');
-    if (canvas.userId !== userId) throw new ForbiddenException();
+    // Removed ownership check to allow collaborators to save their edits
 
     return this.prisma.canvas.update({
       where: { id },

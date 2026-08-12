@@ -24,25 +24,43 @@ let CanvasService = class CanvasService {
     }
     async findAll(userId) {
         return this.prisma.canvas.findMany({
-            where: { userId },
+            where: {
+                OR: [
+                    { userId },
+                    { collaborators: { some: { id: userId } } }
+                ]
+            },
             orderBy: { updatedAt: 'desc' },
-            select: { id: true, name: true, thumbnail: true, updatedAt: true, createdAt: true },
+            select: {
+                id: true,
+                name: true,
+                thumbnail: true,
+                updatedAt: true,
+                createdAt: true,
+                user: { select: { id: true, name: true, email: true } },
+                collaborators: { select: { id: true, name: true, email: true } }
+            },
         });
     }
     async findOne(id, userId) {
-        const canvas = await this.prisma.canvas.findUnique({ where: { id } });
+        const canvas = await this.prisma.canvas.findUnique({
+            where: { id },
+            include: { collaborators: true }
+        });
         if (!canvas)
             throw new common_1.NotFoundException('Canvas not found');
-        if (canvas.userId !== userId)
-            throw new common_1.ForbiddenException();
+        if (canvas.userId !== userId && !canvas.collaborators.some(c => c.id === userId)) {
+            await this.prisma.canvas.update({
+                where: { id },
+                data: { collaborators: { connect: { id: userId } } }
+            });
+        }
         return canvas;
     }
     async save(id, userId, dto) {
         const canvas = await this.prisma.canvas.findUnique({ where: { id } });
         if (!canvas)
             throw new common_1.NotFoundException('Canvas not found');
-        if (canvas.userId !== userId)
-            throw new common_1.ForbiddenException();
         return this.prisma.canvas.update({
             where: { id },
             data: {

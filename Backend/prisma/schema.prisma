@@ -10,23 +10,25 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String?
-  password  String
-  canvases  Canvas[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(uuid())
+  email          String   @unique
+  name           String?
+  password       String
+  canvases       Canvas[] @relation("OwnedCanvases")
+  sharedCanvases Canvas[] @relation("SharedCanvases")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model Canvas {
-  id        String   @id @default(uuid())
-  name      String   @default("Untitled Canvas")
-  data      Json     @default("[]")
-  thumbnail String?  // base64 PNG data URL captured from canvas
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(uuid())
+  name          String   @default("Untitled Canvas")
+  data          Json     @default("[]")
+  thumbnail     String?  // base64 PNG data URL captured from canvas
+  userId        String
+  user          User     @relation("OwnedCanvases", fields: [userId], references: [id], onDelete: Cascade)
+  collaborators User[]   @relation("SharedCanvases")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 

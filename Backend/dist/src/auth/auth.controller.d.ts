@@ -5,18 +5,18 @@ export declare class AuthController {
     constructor(authService: AuthService);
     register(dto: RegisterDto): Promise<{
         user: {
+            id: string;
             email: string;
             name: string | null;
-            id: string;
             createdAt: Date;
         };
         access_token: string;
     }>;
     login(dto: LoginDto): Promise<{
         user: {
+            id: string;
             email: string;
             name: string | null;
-            id: string;
             createdAt: Date;
             updatedAt: Date;
         };
@@ -28,13 +28,13 @@ export declare class AuthController {
             email: string;
         };
     }): Promise<{
+        id: string;
         email: string;
         name: string | null;
-        id: string;
         createdAt: Date;
         canvases: {
-            name: string;
             id: string;
+            name: string;
             updatedAt: Date;
         }[];
     }>;

@@ -52,6 +52,8 @@ export interface CanvasData {
   data: unknown[];
   thumbnail?: string;  // base64 PNG data URL
   userId: string;
+  user?: { id: string; name: string | null; email: string };
+  collaborators?: { id: string; name: string | null; email: string }[];
   createdAt: string;
   updatedAt: string;
 }
