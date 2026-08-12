@@ -15,6 +15,7 @@ export declare class CanvasController {
         createdAt: Date;
         updatedAt: Date;
         data: import("@prisma/client/runtime/client").JsonValue;
+        thumbnail: string | null;
         userId: string;
     }>;
     findAll(req: AuthRequest): Promise<{
@@ -22,6 +23,7 @@ export declare class CanvasController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        thumbnail: string | null;
     }[]>;
     findOne(id: string, req: AuthRequest): Promise<{
         name: string;
@@ -29,6 +31,7 @@ export declare class CanvasController {
         createdAt: Date;
         updatedAt: Date;
         data: import("@prisma/client/runtime/client").JsonValue;
+        thumbnail: string | null;
         userId: string;
     }>;
     save(id: string, req: AuthRequest, dto: SaveCanvasDto): Promise<{
@@ -37,6 +40,7 @@ export declare class CanvasController {
         createdAt: Date;
         updatedAt: Date;
         data: import("@prisma/client/runtime/client").JsonValue;
+        thumbnail: string | null;
         userId: string;
     }>;
     remove(id: string, req: AuthRequest): Promise<{

@@ -9,6 +9,7 @@ export declare class CanvasService {
         createdAt: Date;
         updatedAt: Date;
         data: import("@prisma/client/runtime/client").JsonValue;
+        thumbnail: string | null;
         userId: string;
     }>;
     findAll(userId: string): Promise<{
@@ -16,6 +17,7 @@ export declare class CanvasService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        thumbnail: string | null;
     }[]>;
     findOne(id: string, userId: string): Promise<{
         name: string;
@@ -23,6 +25,7 @@ export declare class CanvasService {
         createdAt: Date;
         updatedAt: Date;
         data: import("@prisma/client/runtime/client").JsonValue;
+        thumbnail: string | null;
         userId: string;
     }>;
     save(id: string, userId: string, dto: SaveCanvasDto): Promise<{
@@ -31,6 +34,7 @@ export declare class CanvasService {
         createdAt: Date;
         updatedAt: Date;
         data: import("@prisma/client/runtime/client").JsonValue;
+        thumbnail: string | null;
         userId: string;
     }>;
     remove(id: string, userId: string): Promise<{

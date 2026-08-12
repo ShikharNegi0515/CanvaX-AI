@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import rough from 'roughjs';
 import { getStroke } from 'perfect-freehand';
 import { getFloodFillPath } from './floodFill';
@@ -18,6 +19,8 @@ import { findSnapTarget, getUpdatedBoundArrows } from '../../lib/connection-util
 import { useCollaboration, type RemoteCursor, type Collaborator } from '../../hooks/useCollaboration';
 
 export function InfiniteCanvas() {
+  const { id: routeId } = useParams();
+  const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const textInputRef = useRef<HTMLTextAreaElement>(null);
@@ -863,7 +866,6 @@ export function InfiniteCanvas() {
       if (rect) setEraserPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
 
       if (!isEraserDragging.current) {
-        const ptr = getPointer(e);
         const hit = getEraserHitElement(ptr);
         setHoveredEraserId(hit ? hit.id : null);
       } else {
@@ -876,7 +878,6 @@ export function InfiniteCanvas() {
 
     // Text box drag — update draft dimensions
     if (tool === 'text' && textBoxStart.current) {
-      const ptr = getPointer(e);
       const sx = textBoxStart.current.x;
       const sy = textBoxStart.current.y;
       setTextBoxDraft({ x: sx, y: sy, w: ptr.x - sx, h: ptr.y - sy });
@@ -884,14 +885,12 @@ export function InfiniteCanvas() {
     }
 
     if (tool === 'lasso' && isLassoing.current) {
-      const ptr = getPointer(e);
       setLassoPoints(prev => [...prev, ptr]);
       return;
     }
 
     // Marquee selection drag
     if (tool === 'select' && selectionBoxStart.current) {
-      const ptr = getPointer(e);
       const sx = selectionBoxStart.current.x;
       const sy = selectionBoxStart.current.y;
       const w = ptr.x - sx;
@@ -924,7 +923,6 @@ export function InfiniteCanvas() {
     }
 
     if (tool === 'laser' && isLasering.current) {
-      const ptr = getPointer(e);
       laserPoints.current.push({ x: ptr.x, y: ptr.y, time: performance.now() });
       return;
     }
@@ -940,7 +938,6 @@ export function InfiniteCanvas() {
 
     // Drag eraser: accumulate elements under cursor
     if (tool === 'eraser' && isEraserDragging.current) {
-      const ptr = getPointer(e);
       const hit = getEraserHitElement(ptr);
       if (hit) {
         setErasingIds(prev => {
@@ -955,7 +952,6 @@ export function InfiniteCanvas() {
 
     // Handle resizing
     if (resizing) {
-      const ptr = getPointer(e);
       const { handle, startEl } = resizing;
       const dx = ptr.x - resizing.startX;
       const dy = ptr.y - resizing.startY;
@@ -972,8 +968,6 @@ export function InfiniteCanvas() {
     }
 
     if (!isDragging) return;
-
-    const ptr = getPointer(e);
 
     if (tool === 'select') {
       let dx = ptr.x - dragStart.x;
@@ -1248,35 +1242,46 @@ export function InfiniteCanvas() {
     if (!user) return;
     let cancelled = false;
     const init = async () => {
-      const saved = localStorage.getItem('canvax_last_canvas_id');
+      // Prioritize the ID from the URL. If it's a legacy /canvas route, fallback to localStorage
+      let targetId = routeId || localStorage.getItem('canvax_last_canvas_id');
+      
       try {
-        if (saved) {
-          const canvas = await canvasApi.get(saved);
+        if (targetId) {
+          const canvas = await canvasApi.get(targetId);
           if (!cancelled) {
             setCanvasId(canvas.id);
             setCanvasName(canvas.name);
             setElements(canvas.data as CanvasElement[]);
+            localStorage.setItem('canvax_last_canvas_id', canvas.id);
+            if (!routeId) {
+              // Redirect to the proper URL if we loaded from localStorage
+              navigate(`/canvas/${canvas.id}`, { replace: true });
+            }
           }
         } else {
+          // No target ID at all, create a new one
           const canvas = await canvasApi.create('Untitled Canvas');
           if (!cancelled) {
             setCanvasId(canvas.id);
             setCanvasName(canvas.name);
             localStorage.setItem('canvax_last_canvas_id', canvas.id);
+            navigate(`/canvas/${canvas.id}`, { replace: true });
           }
         }
       } catch {
+        // ID was invalid or deleted, create a new one
         const canvas = await canvasApi.create('Untitled Canvas');
         if (!cancelled) {
           setCanvasId(canvas.id);
           setCanvasName(canvas.name);
           localStorage.setItem('canvax_last_canvas_id', canvas.id);
+          navigate(`/canvas/${canvas.id}`, { replace: true });
         }
       }
     };
     init();
     return () => { cancelled = true; };
-  }, [user]);
+  }, [user, routeId, navigate]);
 
   // Capture a thumbnail from the canvas element
   const captureThumbnail = useCallback((): string | undefined => {
@@ -1466,6 +1471,28 @@ export function InfiniteCanvas() {
             {c.name?.[0]?.toUpperCase() ?? '?'}
           </div>
         ))}
+
+        {/* Share Button */}
+        <button
+          title="Copy link to collaborate"
+          onClick={() => {
+            navigator.clipboard.writeText(window.location.href);
+            // Optionally, show a brief toast or change icon, but native clipboard is enough for now
+            alert('Link copied to clipboard! Share it with others to collaborate.');
+          }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '6px 12px', borderRadius: 20,
+            background: 'linear-gradient(135deg, #06b6d4, #10b981)',
+            border: 'none', color: '#fff', fontSize: 12, fontWeight: 600,
+            cursor: 'pointer', boxShadow: '0 2px 10px rgba(6,182,212,0.3)',
+            transition: 'transform 0.2s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          Share
+        </button>
 
         {/* Save status */}
         {saveStatus !== 'idle' && (

@@ -58,7 +58,7 @@ export const DashboardPage = () => {
     try {
       const canvas = await canvasApi.create('Untitled Canvas');
       localStorage.setItem('canvax_last_canvas_id', canvas.id);
-      navigate('/canvas');
+      navigate(`/canvas/${canvas.id}`);
     } catch {
       setCreating(false);
     }
@@ -66,7 +66,7 @@ export const DashboardPage = () => {
 
   const handleOpen = (id: string) => {
     localStorage.setItem('canvax_last_canvas_id', id);
-    navigate('/canvas');
+    navigate(`/canvas/${id}`);
   };
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {

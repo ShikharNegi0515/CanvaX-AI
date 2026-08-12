@@ -13,7 +13,13 @@ const router = createBrowserRouter([
     element: <DashboardPage />,
   },
   {
+    // Legacy redirect — kept so old localStorage links still work
     path: '/canvas',
+    element: <InfiniteCanvas />,
+  },
+  {
+    // Primary shareable URL: /canvas/:id
+    path: '/canvas/:id',
     element: <InfiniteCanvas />,
   },
   {

@@ -4,4 +4,5 @@ export declare class CreateCanvasDto {
 export declare class SaveCanvasDto {
     name?: string;
     data?: object[];
+    thumbnail?: string;
 }

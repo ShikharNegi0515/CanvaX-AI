@@ -26,7 +26,7 @@ let CanvasService = class CanvasService {
         return this.prisma.canvas.findMany({
             where: { userId },
             orderBy: { updatedAt: 'desc' },
-            select: { id: true, name: true, updatedAt: true, createdAt: true },
+            select: { id: true, name: true, thumbnail: true, updatedAt: true, createdAt: true },
         });
     }
     async findOne(id, userId) {
@@ -48,6 +48,7 @@ let CanvasService = class CanvasService {
             data: {
                 ...(dto.name !== undefined && { name: dto.name }),
                 ...(dto.data !== undefined && { data: dto.data }),
+                ...(dto.thumbnail !== undefined && { thumbnail: dto.thumbnail }),
             },
         });
     }
