@@ -23,6 +23,7 @@ model Canvas {
   id        String   @id @default(uuid())
   name      String   @default("Untitled Canvas")
   data      Json     @default("[]")
+  thumbnail String?  // base64 PNG data URL captured from canvas
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())

@@ -50,6 +50,7 @@ export interface CanvasData {
   id: string;
   name: string;
   data: unknown[];
+  thumbnail?: string;  // base64 PNG data URL
   userId: string;
   createdAt: string;
   updatedAt: string;
@@ -66,12 +67,22 @@ export const canvasApi = {
 
   get: (id: string) => request<CanvasData>(`/canvas/${id}`),
 
-  save: (id: string, name: string, data: unknown[]) =>
+  save: (id: string, name: string, data: unknown[], thumbnail?: string) =>
     request<CanvasData>(`/canvas/${id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ name, data }),
+      body: JSON.stringify({ name, data, thumbnail }),
     }),
 
   delete: (id: string) =>
     request<void>(`/canvas/${id}`, { method: 'DELETE' }),
+};
+
+// ─── AI ───────────────────────────────────────────────────────────────────────
+
+export const aiApi = {
+  generate: (prompt: string) =>
+    request<{ elements: unknown[] }>('/ai/generate', {
+      method: 'POST',
+      body: JSON.stringify({ prompt }),
+    }),
 };

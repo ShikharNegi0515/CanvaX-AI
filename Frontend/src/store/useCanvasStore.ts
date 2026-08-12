@@ -26,6 +26,11 @@ export type TextAlign = 'left' | 'center' | 'right';
 export type ArrowheadStyle = 'none' | 'arrow' | 'dot' | 'bar';
 export type ElementType = 'rectangle' | 'diamond' | 'ellipse' | 'arrow' | 'line' | 'draw' | 'text' | 'image' | 'frame';
 
+export interface ArrowBinding {
+  elementId: string;
+  point: 'top' | 'right' | 'bottom' | 'left';
+}
+
 export interface CanvasElement {
   id: string;
   type: ElementType;
@@ -74,6 +79,10 @@ export interface CanvasElement {
   frameId?: string;
 
   // Locked
+  // Arrow bindings (snap-to-shape)
+  startBinding?: ArrowBinding;
+  endBinding?: ArrowBinding;
+
   locked?: boolean;
 
   // Link

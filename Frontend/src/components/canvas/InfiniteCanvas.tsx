@@ -11,6 +11,11 @@ import { canvasApi } from '../../lib/api';
 import { exportCanvasToPNG, exportCanvasToSVG } from '../../lib/export-utils';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Loader2 } from 'lucide-react';
+import { AIPanel } from './AIPanel';
+import { MermaidPanel } from './MermaidPanel';
+import { PresentationMode } from './PresentationMode';
+import { findSnapTarget, getUpdatedBoundArrows } from '../../lib/connection-utils';
+import { useCollaboration, type RemoteCursor, type Collaborator } from '../../hooks/useCollaboration';
 
 export function InfiniteCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -20,6 +25,8 @@ export function InfiniteCanvas() {
   const laserPoints = useRef<{ x: number, y: number, time: number }[]>([]);
   const isLasering = useRef(false);
   const [clipboard, setClipboard] = useState<CanvasElement[]>([]);
+  const [snapTarget, setSnapTarget] = useState<{ x: number; y: number } | null>(null);
+  const [isPresentationMode, setIsPresentationMode] = useState(false);
 
   const {
     tool, setTool, elements, setElements, addElement, updateElement, updateElements,
@@ -90,6 +97,11 @@ export function InfiniteCanvas() {
   const [canvasId, setCanvasId] = useState<string | null>(null);
   const [canvasName, setCanvasName] = useState('Untitled Canvas');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+
+  // Collaboration state
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
+  const [remoteCursors, setRemoteCursors] = useState<Record<string, RemoteCursor>>({});
+  const isRemotePatch = useRef(false);
 
   const getPointer = (e: React.PointerEvent | PointerEvent) => {
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -471,8 +483,21 @@ export function InfiniteCanvas() {
       ctx.restore();
     });
 
+    // Draw snap target indicator (blue dot when arrow hovers a connection point)
+    if (snapTarget && (tool === 'arrow' || tool === 'line')) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(snapTarget.x, snapTarget.y, 7 / camera.zoom, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(99,148,255,0.25)';
+      ctx.fill();
+      ctx.strokeStyle = '#6394ff';
+      ctx.lineWidth = 2 / camera.zoom;
+      ctx.stroke();
+      ctx.restore();
+    }
+
     ctx.restore();
-  }, [elements, camera, selectedIds, erasingIds, hoveredEraserId, editingTextId, textBoxDraft, selectionBox, lassoPoints, appState.viewBackgroundColor, renderTrigger, tool, snapLines]);
+  }, [elements, camera, selectedIds, erasingIds, hoveredEraserId, editingTextId, textBoxDraft, selectionBox, lassoPoints, appState.viewBackgroundColor, renderTrigger, tool, snapLines, snapTarget]);
 
   const getHitElement = useCallback((ptr: { x: number, y: number }) => {
     return [...elements].reverse().find(el => {
@@ -803,10 +828,22 @@ export function InfiniteCanvas() {
 
     // Creating shapes
     const id = crypto.randomUUID();
+    // For arrow/line: check if starting from a connection point
+    let startBinding = undefined;
+    if (tool === 'arrow' || tool === 'line') {
+      const snap = findSnapTarget(ptr, elements);
+      if (snap) {
+        startBinding = { elementId: snap.element.id, point: snap.cp.point };
+        // Start exactly at the connection point
+        ptr.x = snap.cp.x;
+        ptr.y = snap.cp.y;
+      }
+    }
     const newEl: CanvasElement = {
       id, type: tool as any, x: ptr.x, y: ptr.y,
       width: 0, height: 0,
       points: (tool === 'line' || tool === 'arrow' || tool === 'draw') ? [0, 0] : undefined,
+      ...(startBinding ? { startBinding } : {}),
       ...defaultStyle
     };
     addElement(newEl);
@@ -816,6 +853,10 @@ export function InfiniteCanvas() {
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
+    // Broadcast cursor position to collaborators
+    const ptr = getPointer(e);
+    broadcastCursor(ptr.x, ptr.y);
+
     // Track eraser cursor position always
     if (tool === 'eraser') {
       const rect = canvasRef.current?.getBoundingClientRect();
@@ -986,6 +1027,16 @@ export function InfiniteCanvas() {
       }).filter(Boolean) as { id: string, attrs: Partial<CanvasElement> }[];
 
       updateElements(updates);
+
+      // Update any arrows bound to moved shapes
+      const movedIds = updates.map(u => u.id);
+      const updatedEls = elements.map(e => {
+        const u = updates.find(u => u.id === e.id);
+        return u ? { ...e, ...u.attrs } : e;
+      });
+      const arrowUpdates = getUpdatedBoundArrows(movedIds, updatedEls);
+      if (arrowUpdates.length > 0) updateElements(arrowUpdates);
+
       setDragStart(ptr);
       return;
     }
@@ -1000,7 +1051,15 @@ export function InfiniteCanvas() {
       const newPoints = [...(el.points || []), ptr.x - (el.x ?? 0), ptr.y - (el.y ?? 0)];
       updateElement(id, { points: newPoints });
     } else if (tool === 'line' || tool === 'arrow') {
-      updateElement(id, { points: [0, 0, ptr.x - (el.x ?? 0), ptr.y - (el.y ?? 0)] });
+      // Snap-to-shape: check if cursor is near a connection point
+      const snap = findSnapTarget(ptr, elements, id);
+      if (snap) {
+        setSnapTarget({ x: snap.cp.x, y: snap.cp.y });
+        updateElement(id, { points: [0, 0, snap.cp.x - (el.x ?? 0), snap.cp.y - (el.y ?? 0)] });
+      } else {
+        setSnapTarget(null);
+        updateElement(id, { points: [0, 0, ptr.x - (el.x ?? 0), ptr.y - (el.y ?? 0)] });
+      }
     } else {
       updateElement(id, {
         width: ptr.x - (el.x ?? 0),
@@ -1107,6 +1166,17 @@ export function InfiniteCanvas() {
     }
     if (isDragging) {
       setIsDragging(false);
+
+      // Arrow/line: if ended on a snap target, save endBinding
+      if ((tool === 'arrow' || tool === 'line') && snapTarget && selectedIds.length === 1) {
+        const arrowId = selectedIds[0];
+        const snap = findSnapTarget(snapTarget, elements, arrowId);
+        if (snap) {
+          updateElement(arrowId, { endBinding: { elementId: snap.element.id, point: snap.cp.point } });
+        }
+        setSnapTarget(null);
+      }
+
       commit();
       if (tool !== 'select' && tool !== 'draw') {
         setTool('select');
@@ -1208,17 +1278,87 @@ export function InfiniteCanvas() {
     return () => { cancelled = true; };
   }, [user]);
 
+  // Capture a thumbnail from the canvas element
+  const captureThumbnail = useCallback((): string | undefined => {
+    const canvas = canvasRef.current;
+    if (!canvas) return undefined;
+    try {
+      // Render a small 320x200 thumbnail
+      const thumb = document.createElement('canvas');
+      thumb.width = 320;
+      thumb.height = 200;
+      const tCtx = thumb.getContext('2d');
+      if (!tCtx) return undefined;
+      const dpr = window.devicePixelRatio || 1;
+      const scaleX = 320 / (canvas.width / dpr);
+      const scaleY = 200 / (canvas.height / dpr);
+      const scale = Math.min(scaleX, scaleY);
+      tCtx.fillStyle = appState.viewBackgroundColor;
+      tCtx.fillRect(0, 0, 320, 200);
+      tCtx.drawImage(
+        canvas,
+        0, 0, canvas.width, canvas.height,
+        (320 - (canvas.width / dpr) * scale) / 2,
+        (200 - (canvas.height / dpr) * scale) / 2,
+        (canvas.width / dpr) * scale,
+        (canvas.height / dpr) * scale,
+      );
+      return thumb.toDataURL('image/webp', 0.6);
+    } catch {
+      return undefined;
+    }
+  }, [appState.viewBackgroundColor]);
+
+  // Auto-save with thumbnail
   useEffect(() => {
-    if (!canvasId || elements.length === 0) return;
+    if (!canvasId) return;
     const t = setTimeout(() => {
       setSaveStatus('saving');
-      canvasApi.save(canvasId, canvasName, elements).then(() => {
+      const thumbnail = captureThumbnail();
+      canvasApi.save(canvasId, canvasName, elements, thumbnail).then(() => {
         setSaveStatus('saved');
         setTimeout(() => setSaveStatus('idle'), 2000);
       }).catch(() => setSaveStatus('idle'));
     }, 1500);
     return () => clearTimeout(t);
-  }, [elements, canvasId, canvasName]);
+  }, [elements, canvasId, canvasName, captureThumbnail]);
+
+  // Collaboration hook
+  const { broadcastPatch, broadcastCursor } = useCollaboration({
+    canvasId,
+    token: useAuthStore.getState().token,
+    onRemotePatch: useCallback((remoteElements: unknown[]) => {
+      isRemotePatch.current = true;
+      setElements(remoteElements as CanvasElement[]);
+      setTimeout(() => { isRemotePatch.current = false; }, 0);
+    }, [setElements]),
+    onCursorMove: useCallback((cursor: RemoteCursor) => {
+      setRemoteCursors(prev => ({ ...prev, [cursor.userId]: cursor }));
+    }, []),
+    onUserJoined: useCallback((user: Collaborator) => {
+      setCollaborators(prev => {
+        if (prev.find(c => c.userId === user.userId)) return prev;
+        return [...prev, user];
+      });
+    }, []),
+    onUserLeft: useCallback((userId: string) => {
+      setCollaborators(prev => prev.filter(c => c.userId !== userId));
+      setRemoteCursors(prev => {
+        const next = { ...prev };
+        delete next[userId];
+        return next;
+      });
+    }, []),
+    onCollaboratorsUpdate: useCallback((list: Collaborator[]) => {
+      setCollaborators(list);
+    }, []),
+  });
+
+  // Broadcast element changes to collaborators (skip if the change came from a remote patch)
+  useEffect(() => {
+    if (isRemotePatch.current) return;
+    broadcastPatch(elements);
+  }, [elements, broadcastPatch]);
 
   // Handle Text editing overlay
   const editingElement = elements.find(el => el.id === editingTextId);
@@ -1301,12 +1441,88 @@ export function InfiniteCanvas() {
         />
       )}
 
-      {saveStatus !== 'idle' && (
-        <div style={{ position: 'fixed', top: 12, right: 16, zIndex: 200, display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#868e96' }}>
-          {saveStatus === 'saving' ? <Loader2 size={14} className="animate-spin" /> : <div style={{ width: 8, height: 8, borderRadius: 4, background: '#40c057' }} />}
-          {saveStatus === 'saving' ? 'Saving...' : 'Saved'}
-        </div>
-      )}
+      {/* ── Top-right: collaborator avatars + save status ── */}
+      <div style={{
+        position: 'fixed', top: 12, right: 16, zIndex: 200,
+        display: 'flex', alignItems: 'center', gap: 8,
+      }}>
+        {/* Collaborator avatars */}
+        {collaborators.map(c => (
+          <div
+            key={c.userId}
+            title={c.name}
+            style={{
+              width: 28, height: 28, borderRadius: '50%',
+              background: c.color,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 11, fontWeight: 700, color: '#fff',
+              fontFamily: 'Inter, sans-serif',
+              boxShadow: `0 0 0 2px ${c.color}55, 0 2px 8px rgba(0,0,0,0.25)`,
+              cursor: 'default',
+              transition: 'transform 0.2s',
+              flexShrink: 0,
+            }}
+          >
+            {c.name?.[0]?.toUpperCase() ?? '?'}
+          </div>
+        ))}
+
+        {/* Save status */}
+        {saveStatus !== 'idle' && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            padding: '4px 10px', borderRadius: 20,
+            background: appState.theme === 'dark' ? 'rgba(35,35,41,0.9)' : 'rgba(255,255,255,0.9)',
+            border: `1px solid ${appState.theme === 'dark' ? '#3a3a44' : '#e2e2e2'}`,
+            fontSize: 12, color: appState.theme === 'dark' ? '#c5c5d2' : '#495057',
+            backdropFilter: 'blur(8px)',
+          }}>
+            {saveStatus === 'saving'
+              ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
+              : <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#40c057' }} />}
+            {saveStatus === 'saving' ? 'Saving…' : 'Saved'}
+          </div>
+        )}
+      </div>
+
+      {/* ── Remote cursor overlays ── */}
+      {Object.values(remoteCursors).map(cursor => {
+        // Convert canvas coords → screen coords
+        const sx = cursor.x * camera.zoom + camera.x;
+        const sy = cursor.y * camera.zoom + camera.y;
+        return (
+          <div
+            key={cursor.userId}
+            style={{
+              position: 'absolute',
+              left: sx,
+              top: sy,
+              pointerEvents: 'none',
+              zIndex: 500,
+              transform: 'translate(-2px, -2px)',
+            }}
+          >
+            {/* Arrow cursor SVG in user color */}
+            <svg width="20" height="20" viewBox="0 0 20 20" style={{ display: 'block' }}>
+              <path d="M2 2 L2 16 L6 12 L9 18 L11 17 L8 11 L14 11 Z"
+                fill={cursor.color} stroke="#fff" strokeWidth="1.2" strokeLinejoin="round" />
+            </svg>
+            {/* Name label */}
+            <div style={{
+              position: 'absolute', top: 18, left: 4,
+              background: cursor.color,
+              color: '#fff',
+              fontSize: 10, fontWeight: 600,
+              fontFamily: 'Inter, sans-serif',
+              padding: '2px 6px', borderRadius: 4,
+              whiteSpace: 'nowrap',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+            }}>
+              {cursor.name}
+            </div>
+          </div>
+        );
+      })}
 
       {/* Zoom Controls */}
       <div style={{
@@ -1488,6 +1704,49 @@ export function InfiniteCanvas() {
         </div>
         );
       })() : null}
+
+      {/* AI Diagram Generation Panel */}
+      <AIPanel theme={appState.theme} />
+
+      {/* Mermaid Import Panel */}
+      <MermaidPanel theme={appState.theme} />
+
+      {/* Presentation Mode launch button */}
+      {!isPresentationMode && (
+        <button
+          id="presentation-mode-btn"
+          title="Presentation Mode (Frames as Slides)"
+          onClick={() => setIsPresentationMode(true)}
+          style={{
+            position: 'fixed', bottom: 24, right: 330, zIndex: 300,
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '10px 16px', borderRadius: 100, border: 'none',
+            cursor: 'pointer',
+            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+            color: '#fff', fontWeight: 600, fontSize: 14,
+            fontFamily: 'Inter, sans-serif',
+            boxShadow: '0 4px 20px rgba(245,158,11,0.4)',
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.05)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'; }}
+        >
+          ▶ Present
+        </button>
+      )}
+
+      {/* Presentation Mode overlay */}
+      {isPresentationMode && (
+        <PresentationMode
+          elements={elements}
+          camera={camera}
+          setCamera={setCamera}
+          onExit={() => setIsPresentationMode(false)}
+          theme={appState.theme}
+          containerRef={containerRef}
+        />
+      )}
+
     </div>
   );
 }

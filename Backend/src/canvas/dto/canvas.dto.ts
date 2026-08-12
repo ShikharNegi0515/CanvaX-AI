@@ -14,4 +14,8 @@ export class SaveCanvasDto {
   @IsOptional()
   @IsArray()
   data?: object[];
+
+  @IsOptional()
+  @IsString()
+  thumbnail?: string;
 }

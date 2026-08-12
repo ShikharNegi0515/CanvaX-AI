@@ -369,13 +369,27 @@ export const DashboardPage = () => {
                     el.style.background = C.surface;
                   }}
                 >
-                  {/* Dot grid pattern */}
-                  <div style={{
-                    position: 'absolute', inset: 0,
-                    backgroundImage: 'radial-gradient(rgba(6,182,212,0.3) 1px, transparent 1px)',
-                    backgroundSize: '20px 20px',
-                    opacity: 0.07,
-                  }} />
+                  {/* Thumbnail preview or dot-grid placeholder */}
+                  {canvas.thumbnail ? (
+                    <img
+                      src={canvas.thumbnail}
+                      alt={canvas.name}
+                      style={{
+                        position: 'absolute', inset: 0,
+                        width: '100%', height: '100%',
+                        objectFit: 'cover',
+                        opacity: 0.85,
+                        borderRadius: '18px 18px 0 0',
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      backgroundImage: 'radial-gradient(rgba(6,182,212,0.3) 1px, transparent 1px)',
+                      backgroundSize: '20px 20px',
+                      opacity: 0.07,
+                    }} />
+                  )}
 
                   {/* Gradient overlay top-right */}
                   <div style={{
