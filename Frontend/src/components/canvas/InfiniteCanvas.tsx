@@ -1426,6 +1426,40 @@ export function InfiniteCanvas() {
         onExportSVG={handleExportSVG}
       />
 
+      {/* Canvas Title Input */}
+      <div style={{
+        position: 'fixed', top: 12, left: 64, zIndex: 200,
+        display: 'flex', alignItems: 'center'
+      }}>
+        <input
+          type="text"
+          value={canvasName}
+          onChange={(e) => setCanvasName(e.target.value)}
+          placeholder="Untitled Canvas"
+          style={{
+            background: 'transparent',
+            border: 'none',
+            outline: 'none',
+            fontSize: '1rem',
+            fontWeight: 600,
+            color: appState.theme === 'dark' ? '#c5c5d2' : '#1e1e2e',
+            padding: '8px 12px',
+            borderRadius: '8px',
+            width: '200px',
+            transition: 'background 0.2s',
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.background = appState.theme === 'dark' ? '#2c2c35' : '#f1f3f5';
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.background = 'transparent';
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') e.currentTarget.blur();
+          }}
+        />
+      </div>
+
       <Toolbar
         tool={tool} onTool={setTool}
         onUndo={undo} onRedo={redo}
