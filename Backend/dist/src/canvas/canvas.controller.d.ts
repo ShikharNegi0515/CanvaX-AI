@@ -1,5 +1,5 @@
 import { CanvasService } from './canvas.service';
-import { CreateCanvasDto, SaveCanvasDto } from './dto/canvas.dto';
+import { CreateCanvasDto, SaveCanvasDto, ShareCanvasDto } from './dto/canvas.dto';
 type AuthRequest = {
     user: {
         id: string;
@@ -10,60 +10,75 @@ export declare class CanvasController {
     private canvasService;
     constructor(canvasService: CanvasService);
     create(req: AuthRequest, dto: CreateCanvasDto): Promise<{
+        data: import("@prisma/client/runtime/client").JsonValue;
         id: string;
         name: string;
+        thumbnail: string | null;
         createdAt: Date;
         updatedAt: Date;
-        data: import("@prisma/client/runtime/client").JsonValue;
-        thumbnail: string | null;
         userId: string;
     }>;
     findAll(req: AuthRequest): Promise<{
-        user: {
-            id: string;
-            email: string;
-            name: string | null;
-        };
         id: string;
         name: string;
+        thumbnail: string | null;
         createdAt: Date;
         updatedAt: Date;
-        thumbnail: string | null;
-        collaborators: {
+        user: {
             id: string;
-            email: string;
             name: string | null;
+            email: string;
+        };
+        collaborators: {
+            user: {
+                id: string;
+                name: string | null;
+                email: string;
+            };
+            role: import("@prisma/client").$Enums.Role;
         }[];
     }[]>;
     findOne(id: string, req: AuthRequest): Promise<{
-        collaborators: {
+        role: string | undefined;
+        collaborators: ({
+            user: {
+                id: string;
+                name: string | null;
+                email: string;
+            };
+        } & {
             id: string;
-            email: string;
-            name: string | null;
-            password: string;
             createdAt: Date;
-            updatedAt: Date;
-        }[];
-    } & {
+            userId: string;
+            canvasId: string;
+            role: import("@prisma/client").$Enums.Role;
+        })[];
+        data: import("@prisma/client/runtime/client").JsonValue;
         id: string;
         name: string;
+        thumbnail: string | null;
         createdAt: Date;
         updatedAt: Date;
-        data: import("@prisma/client/runtime/client").JsonValue;
-        thumbnail: string | null;
         userId: string;
     }>;
     save(id: string, req: AuthRequest, dto: SaveCanvasDto): Promise<{
+        data: import("@prisma/client/runtime/client").JsonValue;
         id: string;
         name: string;
+        thumbnail: string | null;
         createdAt: Date;
         updatedAt: Date;
-        data: import("@prisma/client/runtime/client").JsonValue;
-        thumbnail: string | null;
         userId: string;
     }>;
     remove(id: string, req: AuthRequest): Promise<{
         success: boolean;
+    }>;
+    share(id: string, req: AuthRequest, dto: ShareCanvasDto): Promise<{
+        id: string;
+        createdAt: Date;
+        userId: string;
+        canvasId: string;
+        role: import("@prisma/client").$Enums.Role;
     }>;
 }
 export {};

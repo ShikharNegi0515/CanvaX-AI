@@ -417,32 +417,34 @@ export const DashboardPage = () => {
                         <PenLine style={{ width: '18px', height: '18px', color: C.primary }} />
                       </div>
 
-                      <button
-                        onClick={(e) => handleDelete(e, canvas.id)}
-                        disabled={deletingId === canvas.id}
-                        style={{
-                          opacity: 0,
-                          padding: '6px', borderRadius: '8px',
-                          background: 'transparent', border: 'none',
-                          color: C.muted, cursor: 'pointer',
-                          transition: 'all 0.2s',
-                        }}
-                        className="group-hover:opacity-100"
-                        title="Delete canvas"
-                        onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.1)';
-                          (e.currentTarget as HTMLButtonElement).style.color = '#f87171';
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-                          (e.currentTarget as HTMLButtonElement).style.color = C.muted;
-                        }}
-                      >
-                        {deletingId === canvas.id
-                          ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
-                          : <Trash2 style={{ width: '16px', height: '16px' }} />
-                        }
-                      </button>
+                      {canvas.userId === user?.id && (
+                        <button
+                          onClick={(e) => handleDelete(e, canvas.id)}
+                          disabled={deletingId === canvas.id}
+                          style={{
+                            opacity: 0,
+                            padding: '6px', borderRadius: '8px',
+                            background: 'transparent', border: 'none',
+                            color: C.muted, cursor: 'pointer',
+                            transition: 'all 0.2s',
+                          }}
+                          className="group-hover:opacity-100"
+                          title="Delete canvas"
+                          onMouseEnter={(e) => {
+                            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.1)';
+                            (e.currentTarget as HTMLButtonElement).style.color = '#f87171';
+                          }}
+                          onMouseLeave={(e) => {
+                            (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                            (e.currentTarget as HTMLButtonElement).style.color = C.muted;
+                          }}
+                        >
+                          {deletingId === canvas.id
+                            ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+                            : <Trash2 style={{ width: '16px', height: '16px' }} />
+                          }
+                        </button>
+                      )}
                     </div>
 
                     <div>
@@ -461,7 +463,7 @@ export const DashboardPage = () => {
                           
                           {/* Collab indicator */}
                           {(canvas.collaborators && canvas.collaborators.length > 0) && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.75rem', color: C.muted }} title={`Shared with ${canvas.collaborators.map(c => c.name || c.email).join(', ')}`}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.75rem', color: C.muted }} title={`Shared with ${canvas.collaborators.map(c => c.user.name || c.user.email).join(', ')}`}>
                               <Users style={{ width: '11px', height: '11px' }} />
                               {canvas.collaborators.length}
                             </div>

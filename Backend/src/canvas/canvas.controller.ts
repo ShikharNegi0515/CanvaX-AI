@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CanvasService } from './canvas.service';
-import { CreateCanvasDto, SaveCanvasDto } from './dto/canvas.dto';
+import { CreateCanvasDto, SaveCanvasDto, ShareCanvasDto } from './dto/canvas.dto';
 
 type AuthRequest = { user: { id: string; email: string } };
 
@@ -43,5 +43,10 @@ export class CanvasController {
   @Delete(':id')
   remove(@Param('id') id: string, @Request() req: AuthRequest) {
     return this.canvasService.remove(id, req.user.id);
+  }
+
+  @Post(':id/share')
+  share(@Param('id') id: string, @Request() req: AuthRequest, @Body() dto: ShareCanvasDto) {
+    return this.canvasService.share(id, req.user.id, dto);
   }
 }

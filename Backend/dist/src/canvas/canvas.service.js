@@ -27,7 +27,7 @@ let CanvasService = class CanvasService {
             where: {
                 OR: [
                     { userId },
-                    { collaborators: { some: { id: userId } } }
+                    { collaborators: { some: { userId } } }
                 ]
             },
             orderBy: { updatedAt: 'desc' },
@@ -38,29 +38,36 @@ let CanvasService = class CanvasService {
                 updatedAt: true,
                 createdAt: true,
                 user: { select: { id: true, name: true, email: true } },
-                collaborators: { select: { id: true, name: true, email: true } }
+                collaborators: { select: { role: true, user: { select: { id: true, name: true, email: true } } } }
             },
         });
     }
     async findOne(id, userId) {
         const canvas = await this.prisma.canvas.findUnique({
             where: { id },
+            include: { collaborators: { include: { user: { select: { id: true, name: true, email: true } } } } }
+        });
+        if (!canvas)
+            throw new common_1.NotFoundException('Canvas not found');
+        const isOwner = canvas.userId === userId;
+        const collab = canvas.collaborators.find(c => c.userId === userId);
+        if (!isOwner && !collab) {
+            throw new common_1.ForbiddenException('You do not have permission to view this canvas. Ask the owner to share it with you.');
+        }
+        return { ...canvas, role: isOwner ? 'ADMIN' : collab?.role };
+    }
+    async save(id, userId, dto) {
+        const canvas = await this.prisma.canvas.findUnique({
+            where: { id },
             include: { collaborators: true }
         });
         if (!canvas)
             throw new common_1.NotFoundException('Canvas not found');
-        if (canvas.userId !== userId && !canvas.collaborators.some(c => c.id === userId)) {
-            await this.prisma.canvas.update({
-                where: { id },
-                data: { collaborators: { connect: { id: userId } } }
-            });
+        const isOwner = canvas.userId === userId;
+        const collab = canvas.collaborators.find(c => c.userId === userId);
+        if (!isOwner && (!collab || collab.role !== 'EDITOR')) {
+            throw new common_1.ForbiddenException('You do not have permission to edit this canvas');
         }
-        return canvas;
-    }
-    async save(id, userId, dto) {
-        const canvas = await this.prisma.canvas.findUnique({ where: { id } });
-        if (!canvas)
-            throw new common_1.NotFoundException('Canvas not found');
         return this.prisma.canvas.update({
             where: { id },
             data: {
@@ -75,9 +82,39 @@ let CanvasService = class CanvasService {
         if (!canvas)
             throw new common_1.NotFoundException('Canvas not found');
         if (canvas.userId !== userId)
-            throw new common_1.ForbiddenException();
+            throw new common_1.ForbiddenException('Only the owner can delete the canvas');
         await this.prisma.canvas.delete({ where: { id } });
         return { success: true };
+    }
+    async share(id, userId, dto) {
+        const canvas = await this.prisma.canvas.findUnique({ where: { id } });
+        if (!canvas)
+            throw new common_1.NotFoundException('Canvas not found');
+        if (canvas.userId !== userId)
+            throw new common_1.ForbiddenException('Only the owner can share the canvas');
+        const userToShare = await this.prisma.user.findUnique({ where: { email: dto.email } });
+        if (!userToShare)
+            throw new common_1.NotFoundException('User with that email not found');
+        if (userToShare.id === userId)
+            throw new common_1.BadRequestException('You cannot share with yourself');
+        const existing = await this.prisma.canvasCollaborator.findUnique({
+            where: { canvasId_userId: { canvasId: id, userId: userToShare.id } }
+        });
+        if (existing) {
+            return this.prisma.canvasCollaborator.update({
+                where: { id: existing.id },
+                data: { role: dto.role }
+            });
+        }
+        else {
+            return this.prisma.canvasCollaborator.create({
+                data: {
+                    canvasId: id,
+                    userId: userToShare.id,
+                    role: dto.role
+                }
+            });
+        }
     }
 };
 exports.CanvasService = CanvasService;

@@ -37,6 +37,9 @@ let CanvasController = class CanvasController {
     remove(id, req) {
         return this.canvasService.remove(id, req.user.id);
     }
+    share(id, req, dto) {
+        return this.canvasService.share(id, req.user.id, dto);
+    }
 };
 exports.CanvasController = CanvasController;
 __decorate([
@@ -79,6 +82,15 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
 ], CanvasController.prototype, "remove", null);
+__decorate([
+    (0, common_1.Post)(':id/share'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Request)()),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, canvas_dto_1.ShareCanvasDto]),
+    __metadata("design:returntype", void 0)
+], CanvasController.prototype, "share", null);
 exports.CanvasController = CanvasController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('canvas'),

@@ -53,7 +53,8 @@ export interface CanvasData {
   thumbnail?: string;  // base64 PNG data URL
   userId: string;
   user?: { id: string; name: string | null; email: string };
-  collaborators?: { id: string; name: string | null; email: string }[];
+  collaborators?: { role: 'EDITOR' | 'VIEWER'; user: { id: string; name: string | null; email: string } }[];
+  role?: 'ADMIN' | 'EDITOR' | 'VIEWER';
   createdAt: string;
   updatedAt: string;
 }
@@ -73,6 +74,12 @@ export const canvasApi = {
     request<CanvasData>(`/canvas/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ name, data, thumbnail }),
+    }),
+
+  share: (id: string, email: string, role: 'EDITOR' | 'VIEWER') =>
+    request(`/canvas/${id}/share`, {
+      method: 'POST',
+      body: JSON.stringify({ email, role }),
     }),
 
   delete: (id: string) =>
