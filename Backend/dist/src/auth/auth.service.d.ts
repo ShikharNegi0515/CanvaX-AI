@@ -7,18 +7,21 @@ export declare class AuthService {
     constructor(prisma: PrismaService, jwtService: JwtService);
     register(dto: RegisterDto): Promise<{
         user: {
-            id: string;
             email: string;
             name: string | null;
+            id: string;
             createdAt: Date;
         };
         access_token: string;
     }>;
     login(dto: LoginDto): Promise<{
         user: {
-            id: string;
             email: string;
             name: string | null;
+            id: string;
+            googleId: string | null;
+            githubId: string | null;
+            avatarUrl: string | null;
             createdAt: Date;
             updatedAt: Date;
         };
@@ -32,22 +35,25 @@ export declare class AuthService {
         avatarUrl?: string;
     }): Promise<{
         user: {
-            id: string;
             email: string;
             name: string | null;
+            id: string;
+            googleId: string | null;
+            githubId: string | null;
+            avatarUrl: string | null;
             createdAt: Date;
             updatedAt: Date;
         };
         access_token: string;
     }>;
     getProfile(userId: string): Promise<{
-        id: string;
         email: string;
         name: string | null;
+        id: string;
         createdAt: Date;
         canvases: {
-            id: string;
             name: string;
+            id: string;
             updatedAt: Date;
         }[];
     }>;

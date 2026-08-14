@@ -1,4 +1,3 @@
-import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
 export declare class AuthController {
@@ -6,18 +5,21 @@ export declare class AuthController {
     constructor(authService: AuthService);
     register(dto: RegisterDto): Promise<{
         user: {
-            id: string;
             email: string;
             name: string | null;
+            id: string;
             createdAt: Date;
         };
         access_token: string;
     }>;
     login(dto: LoginDto): Promise<{
         user: {
-            id: string;
             email: string;
             name: string | null;
+            id: string;
+            googleId: string | null;
+            githubId: string | null;
+            avatarUrl: string | null;
             createdAt: Date;
             updatedAt: Date;
         };
@@ -29,18 +31,18 @@ export declare class AuthController {
             email: string;
         };
     }): Promise<{
-        id: string;
         email: string;
         name: string | null;
+        id: string;
         createdAt: Date;
         canvases: {
-            id: string;
             name: string;
+            id: string;
             updatedAt: Date;
         }[];
     }>;
     googleAuth(): Promise<void>;
-    googleAuthRedirect(req: any, res: Response): void;
+    googleAuthRedirect(req: any, res: any): void;
     githubAuth(): Promise<void>;
-    githubAuthRedirect(req: any, res: Response): void;
+    githubAuthRedirect(req: any, res: any): void;
 }
