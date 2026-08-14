@@ -7,31 +7,47 @@ export declare class AuthService {
     constructor(prisma: PrismaService, jwtService: JwtService);
     register(dto: RegisterDto): Promise<{
         user: {
+            id: string;
             email: string;
             name: string | null;
-            id: string;
             createdAt: Date;
         };
         access_token: string;
     }>;
     login(dto: LoginDto): Promise<{
         user: {
+            id: string;
             email: string;
             name: string | null;
+            createdAt: Date;
+            updatedAt: Date;
+        };
+        access_token: string;
+    }>;
+    validateOAuthUser(details: {
+        email: string;
+        name?: string;
+        provider: 'google' | 'github';
+        providerId: string;
+        avatarUrl?: string;
+    }): Promise<{
+        user: {
             id: string;
+            email: string;
+            name: string | null;
             createdAt: Date;
             updatedAt: Date;
         };
         access_token: string;
     }>;
     getProfile(userId: string): Promise<{
+        id: string;
         email: string;
         name: string | null;
-        id: string;
         createdAt: Date;
         canvases: {
-            name: string;
             id: string;
+            name: string;
             updatedAt: Date;
         }[];
     }>;

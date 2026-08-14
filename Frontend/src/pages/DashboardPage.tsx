@@ -255,17 +255,17 @@ export const DashboardPage = () => {
             style={{ textAlign: 'center', padding: '128px 0' }}
           >
             <div style={{
-              width: '64px', height: '64px', borderRadius: '18px',
-              background: 'rgba(6,182,212,0.08)', border: `1px solid ${C.border}`,
+              width: '64px', height: '64px', borderRadius: '16px',
+              background: 'rgba(255,255,255,0.03)', border: `1px solid rgba(255,255,255,0.08)`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 20px',
+              margin: '0 auto 24px',
             }}>
               <LayoutGrid style={{ width: '28px', height: '28px', color: C.muted }} />
             </div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: C.text, marginBottom: '8px' }}>
-              {search ? 'No canvases found' : 'No canvases yet'}
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 500, color: '#fff', marginBottom: '8px', letterSpacing: '-0.02em' }}>
+              {search ? 'No results found' : 'No canvases yet'}
             </h3>
-            <p style={{ color: C.muted, fontSize: '0.875rem', marginBottom: '24px' }}>
+            <p style={{ color: '#8892b0', fontSize: '0.95rem', marginBottom: '32px' }}>
               {search ? 'Try a different search term' : 'Create your first canvas to get started'}
             </p>
             {!search && (
@@ -274,11 +274,21 @@ export const DashboardPage = () => {
                 disabled={creating}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: '8px',
-                  padding: '10px 20px',
-                  background: C.primaryGrad,
-                  border: 'none', borderRadius: '12px',
-                  color: '#fff', fontWeight: 600, fontSize: '0.875rem',
-                  cursor: 'pointer', boxShadow: '0 4px 24px rgba(6,182,212,0.35)',
+                  padding: '12px 24px',
+                  background: '#fff',
+                  border: 'none', borderRadius: '8px',
+                  color: '#000', fontWeight: 600, fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  boxShadow: '0 4px 14px rgba(255,255,255,0.15)',
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)';
+                  (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 6px 20px rgba(255,255,255,0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
+                  (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 14px rgba(255,255,255,0.15)';
                 }}
               >
                 <Plus style={{ width: '16px', height: '16px' }} />
@@ -287,53 +297,56 @@ export const DashboardPage = () => {
             )}
           </motion.div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '32px' }}>
             {/* New Canvas Card */}
-            <motion.button
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              whileHover={{ y: -4 }}
               onClick={handleCreate}
-              disabled={creating}
               className="group"
               style={{
-                height: '192px',
-                background: 'rgba(6,182,212,0.03)',
-                border: `2px dashed ${C.border}`,
-                borderRadius: '18px',
-                display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center', gap: '12px',
                 cursor: creating ? 'not-allowed' : 'pointer',
                 opacity: creating ? 0.6 : 1,
-                transition: 'all 0.25s',
-              }}
-              onMouseEnter={(e) => {
-                const el = e.currentTarget as HTMLButtonElement;
-                el.style.borderColor = 'rgba(6,182,212,0.4)';
-                el.style.background = 'rgba(6,182,212,0.06)';
-                el.style.boxShadow = '0 8px 40px rgba(6,182,212,0.12)';
-              }}
-              onMouseLeave={(e) => {
-                const el = e.currentTarget as HTMLButtonElement;
-                el.style.borderColor = C.border;
-                el.style.background = 'rgba(6,182,212,0.03)';
-                el.style.boxShadow = 'none';
+                display: 'flex', flexDirection: 'column', gap: '12px',
               }}
             >
               <div style={{
-                width: '48px', height: '48px', borderRadius: '14px',
-                background: 'rgba(6,182,212,0.1)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'background 0.2s',
-              }}>
-                {creating
-                  ? <Loader2 style={{ width: '24px', height: '24px', color: C.primary, animation: 'spin 1s linear infinite' }} />
-                  : <Plus style={{ width: '24px', height: '24px', color: C.primary }} />
-                }
+                aspectRatio: '16/10',
+                background: 'rgba(255,255,255,0.02)',
+                border: `1.5px dashed rgba(255,255,255,0.15)`,
+                borderRadius: '12px',
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', gap: '12px',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)';
+                e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
+                e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
+              }}
+              >
+                <div style={{
+                  width: '44px', height: '44px', borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.08)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {creating
+                    ? <Loader2 style={{ width: '20px', height: '20px', color: '#fff', animation: 'spin 1s linear infinite' }} />
+                    : <Plus style={{ width: '20px', height: '20px', color: '#fff' }} />
+                  }
+                </div>
+                <span style={{ fontSize: '0.9rem', fontWeight: 500, color: '#a1a1aa' }}>New canvas</span>
               </div>
-              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: C.muted }}>New Canvas</span>
-            </motion.button>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '4px' }}>
+                <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#e4e4e7', visibility: 'hidden' }}>Spacer</span>
+                <span style={{ fontSize: '0.8rem', color: '#71717a', visibility: 'hidden' }}>Spacer</span>
+              </div>
+            </motion.div>
 
             {/* Canvas Cards */}
             <AnimatePresence>
@@ -342,41 +355,43 @@ export const DashboardPage = () => {
                   key={canvas.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ delay: i * 0.04 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ delay: i * 0.04, duration: 0.3 }}
                   onClick={() => handleOpen(canvas.id)}
                   style={{
-                    borderRadius: '16px',
-                    overflow: 'hidden',
                     cursor: 'pointer',
-                    border: `1px solid ${hoveredId === canvas.id ? 'rgba(6,182,212,0.4)' : C.border}`,
-                    boxShadow: hoveredId === canvas.id ? '0 12px 48px rgba(6,182,212,0.14)' : '0 2px 8px rgba(0,0,0,0.2)',
-                    transform: hoveredId === canvas.id ? 'translateY(-3px)' : 'translateY(0)',
-                    transition: 'all 0.25s cubic-bezier(0.22,1,0.36,1)',
                     display: 'flex',
                     flexDirection: 'column',
+                    gap: '12px',
+                    position: 'relative',
                   }}
                   onMouseEnter={() => setHoveredId(canvas.id)}
                   onMouseLeave={() => setHoveredId(null)}
                 >
-                  {/* ── Thumbnail Zone ── */}
+                  {/* ── Preview Container ── */}
                   <div style={{
-                    height: '148px',
-                    background: 'linear-gradient(145deg, #0d1526, #111827)',
+                    aspectRatio: '16/10',
+                    background: '#ffffff',
+                    borderRadius: '12px',
                     position: 'relative',
                     overflow: 'hidden',
-                    flexShrink: 0,
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    boxShadow: hoveredId === canvas.id 
+                      ? '0 12px 32px rgba(0,0,0,0.4), 0 0 0 2px rgba(255,255,255,0.2)' 
+                      : '0 4px 12px rgba(0,0,0,0.2)',
+                    transform: hoveredId === canvas.id ? 'translateY(-4px)' : 'translateY(0)',
+                    transition: 'all 0.25s cubic-bezier(0.2, 0, 0, 1)',
                   }}>
-                    {/* Dot grid background */}
-                    <div style={{
-                      position: 'absolute', inset: 0,
-                      backgroundImage: 'radial-gradient(rgba(6,182,212,0.25) 1px, transparent 1px)',
-                      backgroundSize: '22px 22px',
-                      opacity: canvas.thumbnail ? 0 : 0.4,
-                    }} />
+                    {/* Pattern if no thumbnail to make it look nice */}
+                    {!canvas.thumbnail && (
+                       <div style={{
+                        position: 'absolute', inset: 0,
+                        backgroundImage: `linear-gradient(#f1f5f9 1px, transparent 1px), linear-gradient(90deg, #f1f5f9 1px, transparent 1px)`,
+                        backgroundSize: '20px 20px',
+                      }} />
+                    )}
 
-                    {/* Actual thumbnail */}
-                    {canvas.thumbnail && (
+                    {canvas.thumbnail ? (
                       <img
                         src={canvas.thumbnail}
                         alt={canvas.name}
@@ -386,116 +401,98 @@ export const DashboardPage = () => {
                           display: 'block',
                         }}
                       />
-                    )}
-
-                    {/* No-thumbnail icon */}
-                    {!canvas.thumbnail && (
+                    ) : (
                       <div style={{
                         position: 'absolute', inset: 0,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>
-                        <div style={{
-                          width: '48px', height: '48px', borderRadius: '14px',
-                          background: 'rgba(6,182,212,0.1)',
-                          border: '1px solid rgba(6,182,212,0.2)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
-                          <PenLine style={{ width: '22px', height: '22px', color: C.primary }} />
-                        </div>
+                        <LayoutGrid style={{ width: '32px', height: '32px', color: '#cbd5e1' }} />
                       </div>
                     )}
 
-                    {/* Shared badge (top-left) */}
+                    {/* Shared badge overlay */}
                     {canvas.userId !== user?.id && (
                       <span style={{
-                        position: 'absolute', top: 10, left: 10,
-                        fontSize: '0.6rem', padding: '3px 7px',
-                        background: 'rgba(6,182,212,0.85)',
+                        position: 'absolute', top: 12, left: 12,
+                        fontSize: '0.65rem', padding: '4px 8px',
+                        background: 'rgba(0,0,0,0.6)',
                         backdropFilter: 'blur(4px)',
                         color: '#fff', borderRadius: '6px',
-                        fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
+                        fontWeight: 600, letterSpacing: '0.02em',
                       }}>Shared</span>
                     )}
 
-                    {/* Delete button (top-right, owner only) */}
+                    {/* Delete button overlay */}
                     {canvas.userId === user?.id && (
                       <button
                         onClick={(e) => handleDelete(e, canvas.id)}
                         disabled={deletingId === canvas.id}
                         style={{
-                          position: 'absolute', top: 8, right: 8,
-                          padding: '5px', borderRadius: '8px',
-                          background: hoveredId === canvas.id ? 'rgba(15,20,35,0.75)' : 'transparent',
-                          backdropFilter: 'blur(4px)',
+                          position: 'absolute', top: 12, right: 12,
+                          padding: '8px', borderRadius: '8px',
+                          background: 'rgba(255,255,255,0.9)',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                           border: 'none',
                           color: '#ef4444',
                           cursor: 'pointer',
                           opacity: hoveredId === canvas.id ? 1 : 0,
+                          transform: hoveredId === canvas.id ? 'scale(1)' : 'scale(0.9)',
                           pointerEvents: hoveredId === canvas.id ? 'auto' : 'none',
-                          transition: 'all 0.2s',
+                          transition: 'all 0.2s cubic-bezier(0.2, 0, 0, 1)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}
                         title="Delete canvas"
                         onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.2)';
+                          (e.currentTarget as HTMLButtonElement).style.background = '#fee2e2';
                         }}
                         onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.background = 'rgba(15,20,35,0.75)';
+                          (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.9)';
                         }}
                       >
                         {deletingId === canvas.id
-                          ? <Loader2 style={{ width: '14px', height: '14px', animation: 'spin 1s linear infinite' }} />
-                          : <Trash2 style={{ width: '14px', height: '14px' }} />
+                          ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+                          : <Trash2 style={{ width: '16px', height: '16px' }} />
                         }
                       </button>
                     )}
-
-                    {/* Bottom fade into footer */}
-                    <div style={{
-                      position: 'absolute', bottom: 0, left: 0, right: 0, height: '40px',
-                      background: 'linear-gradient(to bottom, transparent, rgba(10,14,26,0.8))',
-                    }} />
                   </div>
 
-                  {/* ── Footer Zone ── */}
-                  <div style={{
-                    background: 'rgba(13,21,38,0.95)',
-                    borderTop: `1px solid ${hoveredId === canvas.id ? 'rgba(6,182,212,0.2)' : 'rgba(6,182,212,0.06)'}`,
-                    padding: '12px 14px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px',
-                    transition: 'border-color 0.25s',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                  {/* ── Airy Text Footer (Outside Card) ── */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <h3 style={{
-                        fontWeight: 600, fontSize: '0.875rem', color: C.text,
+                        margin: 0,
+                        fontWeight: 500, fontSize: '0.95rem',
+                        color: '#f4f4f5',
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                        margin: 0, flex: 1,
                       }}>
                         {canvas.name}
                       </h3>
-                      {hoveredId === canvas.id && (
-                        <ChevronRight style={{ width: '14px', height: '14px', color: C.primary, flexShrink: 0 }} />
-                      )}
+                      <ChevronRight style={{
+                        width: '16px', height: '16px',
+                        color: hoveredId === canvas.id ? '#fff' : 'transparent',
+                        transform: hoveredId === canvas.id ? 'translateX(0)' : 'translateX(-4px)',
+                        transition: 'all 0.2s',
+                      }} />
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: C.muted }}>
-                        <Clock style={{ width: '10px', height: '10px' }} />
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.8rem', color: '#a1a1aa' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         {formatDate(canvas.updatedAt)}
-                      </div>
+                      </span>
                       {(canvas.collaborators && canvas.collaborators.length > 0) && (
-                        <div
-                          style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: C.muted }}
+                        <span
+                          style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
                           title={`Shared with ${canvas.collaborators.map(c => c.user.name || c.user.email).join(', ')}`}
                         >
-                          <Users style={{ width: '10px', height: '10px' }} />
+                          <Users style={{ width: '12px', height: '12px' }} />
                           {canvas.collaborators.length}
-                        </div>
+                        </span>
                       )}
                       {(canvas.userId !== user?.id && canvas.user) && (
-                        <div style={{ fontSize: '0.7rem', color: C.muted }}>
+                        <span>
                           by {canvas.user.name || canvas.user.email?.split('@')[0]}
-                        </div>
+                        </span>
                       )}
                     </div>
                   </div>
@@ -512,3 +509,7 @@ export const DashboardPage = () => {
     </div>
   );
 };
+
+
+
+

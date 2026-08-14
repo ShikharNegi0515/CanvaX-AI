@@ -7,6 +7,8 @@ import { AuthPage } from './pages/AuthPage'
 
 import { DashboardPage } from './pages/DashboardPage'
 
+import { OAuthCallbackPage } from './pages/OAuthCallbackPage'
+
 const router = createBrowserRouter([
   {
     path: '/',
@@ -25,6 +27,10 @@ const router = createBrowserRouter([
   {
     path: '/auth',
     element: <AuthPage />,
+  },
+  {
+    path: '/auth/callback',
+    element: <OAuthCallbackPage />,
   },
 ]);
 

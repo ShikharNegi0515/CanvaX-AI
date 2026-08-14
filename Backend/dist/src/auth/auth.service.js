@@ -68,11 +68,44 @@ let AuthService = class AuthService {
     }
     async login(dto) {
         const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
-        if (!user)
+        if (!user || !user.password)
             throw new common_1.UnauthorizedException('Invalid credentials');
         const valid = await bcrypt.compare(dto.password, user.password);
         if (!valid)
             throw new common_1.UnauthorizedException('Invalid credentials');
+        const { password: _pw, ...safeUser } = user;
+        const token = this.signToken(user.id, user.email);
+        return { user: safeUser, access_token: token };
+    }
+    async validateOAuthUser(details) {
+        const { email, name, provider, providerId, avatarUrl } = details;
+        let user = await this.prisma.user.findUnique({ where: { email } });
+        if (user) {
+            const updateData = {};
+            if (provider === 'google' && !user.googleId)
+                updateData.googleId = providerId;
+            if (provider === 'github' && !user.githubId)
+                updateData.githubId = providerId;
+            if (!user.avatarUrl && avatarUrl)
+                updateData.avatarUrl = avatarUrl;
+            if (Object.keys(updateData).length > 0) {
+                user = await this.prisma.user.update({
+                    where: { id: user.id },
+                    data: updateData,
+                });
+            }
+        }
+        else {
+            user = await this.prisma.user.create({
+                data: {
+                    email,
+                    name: name || email.split('@')[0],
+                    googleId: provider === 'google' ? providerId : null,
+                    githubId: provider === 'github' ? providerId : null,
+                    avatarUrl,
+                },
+            });
+        }
         const { password: _pw, ...safeUser } = user;
         const token = this.signToken(user.id, user.email);
         return { user: safeUser, access_token: token };
