@@ -4,30 +4,31 @@ export declare class CanvasService {
     private prisma;
     constructor(prisma: PrismaService);
     create(userId: string, dto: CreateCanvasDto): Promise<{
-        data: import("@prisma/client/runtime/client").JsonValue;
-        id: string;
         name: string;
-        thumbnail: string | null;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
+        data: import("@prisma/client/runtime/client").JsonValue;
+        thumbnail: string | null;
         userId: string;
     }>;
     findAll(userId: string): Promise<{
-        id: string;
+        user: {
+            email: string;
+            name: string | null;
+            id: string;
+        };
         name: string;
-        thumbnail: string | null;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
-        user: {
-            id: string;
-            name: string | null;
-            email: string;
-        };
+        thumbnail: string | null;
+        userId: string;
         collaborators: {
             user: {
-                id: string;
-                name: string | null;
                 email: string;
+                name: string | null;
+                id: string;
             };
             role: import("@prisma/client").$Enums.Role;
         }[];
@@ -36,32 +37,32 @@ export declare class CanvasService {
         role: string | undefined;
         collaborators: ({
             user: {
-                id: string;
-                name: string | null;
                 email: string;
+                name: string | null;
+                id: string;
             };
         } & {
             id: string;
             createdAt: Date;
             userId: string;
-            canvasId: string;
             role: import("@prisma/client").$Enums.Role;
+            canvasId: string;
         })[];
-        data: import("@prisma/client/runtime/client").JsonValue;
-        id: string;
         name: string;
-        thumbnail: string | null;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
+        data: import("@prisma/client/runtime/client").JsonValue;
+        thumbnail: string | null;
         userId: string;
     }>;
     save(id: string, userId: string, dto: SaveCanvasDto): Promise<{
-        data: import("@prisma/client/runtime/client").JsonValue;
-        id: string;
         name: string;
-        thumbnail: string | null;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
+        data: import("@prisma/client/runtime/client").JsonValue;
+        thumbnail: string | null;
         userId: string;
     }>;
     remove(id: string, userId: string): Promise<{
@@ -71,7 +72,7 @@ export declare class CanvasService {
         id: string;
         createdAt: Date;
         userId: string;
-        canvasId: string;
         role: import("@prisma/client").$Enums.Role;
+        canvasId: string;
     }>;
 }

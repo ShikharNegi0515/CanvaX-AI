@@ -33,6 +33,7 @@ let CanvasService = class CanvasService {
             orderBy: { updatedAt: 'desc' },
             select: {
                 id: true,
+                userId: true,
                 name: true,
                 thumbnail: true,
                 updatedAt: true,

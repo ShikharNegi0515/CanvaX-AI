@@ -43,6 +43,7 @@ export const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
 
@@ -343,139 +344,159 @@ export const DashboardPage = () => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ delay: i * 0.04 }}
-                  whileHover={{ scale: 1.02 }}
                   onClick={() => handleOpen(canvas.id)}
-                  className="group"
                   style={{
-                    height: '192px',
-                    background: C.surface,
-                    border: `1px solid ${C.border}`,
-                    borderRadius: '18px',
+                    borderRadius: '16px',
                     overflow: 'hidden',
                     cursor: 'pointer',
-                    position: 'relative',
-                    transition: 'all 0.25s',
+                    border: `1px solid ${hoveredId === canvas.id ? 'rgba(6,182,212,0.4)' : C.border}`,
+                    boxShadow: hoveredId === canvas.id ? '0 12px 48px rgba(6,182,212,0.14)' : '0 2px 8px rgba(0,0,0,0.2)',
+                    transform: hoveredId === canvas.id ? 'translateY(-3px)' : 'translateY(0)',
+                    transition: 'all 0.25s cubic-bezier(0.22,1,0.36,1)',
+                    display: 'flex',
+                    flexDirection: 'column',
                   }}
-                  onMouseEnter={(e) => {
-                    const el = e.currentTarget as HTMLDivElement;
-                    el.style.borderColor = 'rgba(6,182,212,0.35)';
-                    el.style.boxShadow = '0 12px 48px rgba(6,182,212,0.12)';
-                    el.style.background = C.surfaceHover;
-                  }}
-                  onMouseLeave={(e) => {
-                    const el = e.currentTarget as HTMLDivElement;
-                    el.style.borderColor = C.border;
-                    el.style.boxShadow = 'none';
-                    el.style.background = C.surface;
-                  }}
+                  onMouseEnter={() => setHoveredId(canvas.id)}
+                  onMouseLeave={() => setHoveredId(null)}
                 >
-                  {/* Thumbnail preview or dot-grid placeholder */}
-                  {canvas.thumbnail ? (
-                    <img
-                      src={canvas.thumbnail}
-                      alt={canvas.name}
-                      style={{
-                        position: 'absolute', inset: 0,
-                        width: '100%', height: '100%',
-                        objectFit: 'cover',
-                        opacity: 0.85,
-                        borderRadius: '18px 18px 0 0',
-                      }}
-                    />
-                  ) : (
+                  {/* ── Thumbnail Zone ── */}
+                  <div style={{
+                    height: '148px',
+                    background: 'linear-gradient(145deg, #0d1526, #111827)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                  }}>
+                    {/* Dot grid background */}
                     <div style={{
                       position: 'absolute', inset: 0,
-                      backgroundImage: 'radial-gradient(rgba(6,182,212,0.3) 1px, transparent 1px)',
-                      backgroundSize: '20px 20px',
-                      opacity: 0.07,
+                      backgroundImage: 'radial-gradient(rgba(6,182,212,0.25) 1px, transparent 1px)',
+                      backgroundSize: '22px 22px',
+                      opacity: canvas.thumbnail ? 0 : 0.4,
                     }} />
-                  )}
 
-                  {/* Gradient overlay top-right */}
-                  <div style={{
-                    position: 'absolute', inset: 0,
-                    background: 'linear-gradient(135deg, rgba(6,182,212,0.06) 0%, transparent 60%, rgba(16,185,129,0.04) 100%)',
-                  }} />
+                    {/* Actual thumbnail */}
+                    {canvas.thumbnail && (
+                      <img
+                        src={canvas.thumbnail}
+                        alt={canvas.name}
+                        style={{
+                          width: '100%', height: '100%',
+                          objectFit: 'cover',
+                          display: 'block',
+                        }}
+                      />
+                    )}
 
-                  {/* Top accent line */}
-                  <div style={{
-                    position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
-                    background: `linear-gradient(90deg, ${C.primary}, ${C.secondary})`,
-                    opacity: 0,
-                    transition: 'opacity 0.3s',
-                  }} className="group-hover:opacity-100" />
-
-                  {/* Content */}
-                  <div style={{ position: 'relative', height: '100%', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                    {/* No-thumbnail icon */}
+                    {!canvas.thumbnail && (
                       <div style={{
-                        width: '40px', height: '40px', borderRadius: '12px',
-                        background: 'linear-gradient(135deg, rgba(6,182,212,0.15), rgba(16,185,129,0.1))',
-                        border: `1px solid rgba(6,182,212,0.2)`,
+                        position: 'absolute', inset: 0,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>
-                        <PenLine style={{ width: '18px', height: '18px', color: C.primary }} />
+                        <div style={{
+                          width: '48px', height: '48px', borderRadius: '14px',
+                          background: 'rgba(6,182,212,0.1)',
+                          border: '1px solid rgba(6,182,212,0.2)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <PenLine style={{ width: '22px', height: '22px', color: C.primary }} />
+                        </div>
                       </div>
+                    )}
 
-                      {canvas.userId === user?.id && (
-                        <button
-                          onClick={(e) => handleDelete(e, canvas.id)}
-                          disabled={deletingId === canvas.id}
-                          style={{
-                            opacity: 0,
-                            padding: '6px', borderRadius: '8px',
-                            background: 'transparent', border: 'none',
-                            color: C.muted, cursor: 'pointer',
-                            transition: 'all 0.2s',
-                          }}
-                          className="group-hover:opacity-100"
-                          title="Delete canvas"
-                          onMouseEnter={(e) => {
-                            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.1)';
-                            (e.currentTarget as HTMLButtonElement).style.color = '#f87171';
-                          }}
-                          onMouseLeave={(e) => {
-                            (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-                            (e.currentTarget as HTMLButtonElement).style.color = C.muted;
-                          }}
-                        >
-                          {deletingId === canvas.id
-                            ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
-                            : <Trash2 style={{ width: '16px', height: '16px' }} />
-                          }
-                        </button>
+                    {/* Shared badge (top-left) */}
+                    {canvas.userId !== user?.id && (
+                      <span style={{
+                        position: 'absolute', top: 10, left: 10,
+                        fontSize: '0.6rem', padding: '3px 7px',
+                        background: 'rgba(6,182,212,0.85)',
+                        backdropFilter: 'blur(4px)',
+                        color: '#fff', borderRadius: '6px',
+                        fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
+                      }}>Shared</span>
+                    )}
+
+                    {/* Delete button (top-right, owner only) */}
+                    {canvas.userId === user?.id && (
+                      <button
+                        onClick={(e) => handleDelete(e, canvas.id)}
+                        disabled={deletingId === canvas.id}
+                        style={{
+                          position: 'absolute', top: 8, right: 8,
+                          padding: '5px', borderRadius: '8px',
+                          background: hoveredId === canvas.id ? 'rgba(15,20,35,0.75)' : 'transparent',
+                          backdropFilter: 'blur(4px)',
+                          border: 'none',
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          opacity: hoveredId === canvas.id ? 1 : 0,
+                          pointerEvents: hoveredId === canvas.id ? 'auto' : 'none',
+                          transition: 'all 0.2s',
+                        }}
+                        title="Delete canvas"
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.2)';
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLButtonElement).style.background = 'rgba(15,20,35,0.75)';
+                        }}
+                      >
+                        {deletingId === canvas.id
+                          ? <Loader2 style={{ width: '14px', height: '14px', animation: 'spin 1s linear infinite' }} />
+                          : <Trash2 style={{ width: '14px', height: '14px' }} />
+                        }
+                      </button>
+                    )}
+
+                    {/* Bottom fade into footer */}
+                    <div style={{
+                      position: 'absolute', bottom: 0, left: 0, right: 0, height: '40px',
+                      background: 'linear-gradient(to bottom, transparent, rgba(10,14,26,0.8))',
+                    }} />
+                  </div>
+
+                  {/* ── Footer Zone ── */}
+                  <div style={{
+                    background: 'rgba(13,21,38,0.95)',
+                    borderTop: `1px solid ${hoveredId === canvas.id ? 'rgba(6,182,212,0.2)' : 'rgba(6,182,212,0.06)'}`,
+                    padding: '12px 14px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    transition: 'border-color 0.25s',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                      <h3 style={{
+                        fontWeight: 600, fontSize: '0.875rem', color: C.text,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        margin: 0, flex: 1,
+                      }}>
+                        {canvas.name}
+                      </h3>
+                      {hoveredId === canvas.id && (
+                        <ChevronRight style={{ width: '14px', height: '14px', color: C.primary, flexShrink: 0 }} />
                       )}
                     </div>
-
-                    <div>
-                      <h3 style={{ fontWeight: 600, fontSize: '0.95rem', color: C.text, marginBottom: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        {canvas.name}
-                        {canvas.userId !== user?.id && (
-                          <span style={{ fontSize: '0.65rem', padding: '2px 6px', background: 'rgba(6,182,212,0.15)', color: '#06b6d4', borderRadius: '4px', fontWeight: 600 }}>Shared</span>
-                        )}
-                      </h3>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: C.muted }}>
-                            <Clock style={{ width: '11px', height: '11px' }} />
-                            {formatDate(canvas.updatedAt)}
-                          </div>
-                          
-                          {/* Collab indicator */}
-                          {(canvas.collaborators && canvas.collaborators.length > 0) && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.75rem', color: C.muted }} title={`Shared with ${canvas.collaborators.map(c => c.user.name || c.user.email).join(', ')}`}>
-                              <Users style={{ width: '11px', height: '11px' }} />
-                              {canvas.collaborators.length}
-                            </div>
-                          )}
-                          {(canvas.userId !== user?.id && canvas.user) && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.7rem', color: C.muted }} title={`Owner: ${canvas.user.name || canvas.user.email}`}>
-                              by {canvas.user.name || canvas.user.email?.split('@')[0]}
-                            </div>
-                          )}
-                        </div>
-                        <ChevronRight style={{ width: '14px', height: '14px', color: C.muted, opacity: 0, transform: 'translateX(0)', transition: 'all 0.2s' }} className="group-hover:opacity-100 group-hover:translate-x-0.5" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: C.muted }}>
+                        <Clock style={{ width: '10px', height: '10px' }} />
+                        {formatDate(canvas.updatedAt)}
                       </div>
+                      {(canvas.collaborators && canvas.collaborators.length > 0) && (
+                        <div
+                          style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: C.muted }}
+                          title={`Shared with ${canvas.collaborators.map(c => c.user.name || c.user.email).join(', ')}`}
+                        >
+                          <Users style={{ width: '10px', height: '10px' }} />
+                          {canvas.collaborators.length}
+                        </div>
+                      )}
+                      {(canvas.userId !== user?.id && canvas.user) && (
+                        <div style={{ fontSize: '0.7rem', color: C.muted }}>
+                          by {canvas.user.name || canvas.user.email?.split('@')[0]}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -487,8 +508,6 @@ export const DashboardPage = () => {
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
-        .group-hover\\:opacity-100 { opacity: 0; transition: opacity 0.2s; }
-        .group:hover .group-hover\\:opacity-100 { opacity: 1; }
       `}</style>
     </div>
   );

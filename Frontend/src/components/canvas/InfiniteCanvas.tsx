@@ -99,7 +99,15 @@ export function InfiniteCanvas() {
   // Persistence
   const [canvasId, setCanvasId] = useState<string | null>(null);
   const [canvasName, setCanvasName] = useState('Untitled Canvas');
+  const [userRole, setUserRole] = useState<'ADMIN' | 'EDITOR' | 'VIEWER' | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+
+  // Share modal state
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [shareEmail, setShareEmail] = useState('');
+  const [shareRole, setShareRole] = useState<'EDITOR' | 'VIEWER'>('VIEWER');
+  const [shareStatus, setShareStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [shareError, setShareError] = useState('');
 
   // Collaboration state
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
@@ -1251,6 +1259,7 @@ export function InfiniteCanvas() {
           if (!cancelled) {
             setCanvasId(canvas.id);
             setCanvasName(canvas.name);
+            setUserRole(canvas.role || 'ADMIN');
             setElements(canvas.data as CanvasElement[]);
             localStorage.setItem('canvax_last_canvas_id', canvas.id);
             if (!routeId) {
@@ -1264,6 +1273,7 @@ export function InfiniteCanvas() {
           if (!cancelled) {
             setCanvasId(canvas.id);
             setCanvasName(canvas.name);
+            setUserRole('ADMIN');
             localStorage.setItem('canvax_last_canvas_id', canvas.id);
             navigate(`/canvas/${canvas.id}`, { replace: true });
           }
@@ -1274,6 +1284,7 @@ export function InfiniteCanvas() {
         if (!cancelled) {
           setCanvasId(canvas.id);
           setCanvasName(canvas.name);
+          setUserRole('ADMIN');
           localStorage.setItem('canvax_last_canvas_id', canvas.id);
           navigate(`/canvas/${canvas.id}`, { replace: true });
         }
@@ -1316,7 +1327,7 @@ export function InfiniteCanvas() {
 
   // Auto-save with thumbnail
   useEffect(() => {
-    if (!canvasId) return;
+    if (!canvasId || userRole === 'VIEWER') return;
     const t = setTimeout(() => {
       setSaveStatus('saving');
       const thumbnail = captureThumbnail();
@@ -1326,7 +1337,7 @@ export function InfiniteCanvas() {
       }).catch(() => setSaveStatus('idle'));
     }, 1500);
     return () => clearTimeout(t);
-  }, [elements, canvasId, canvasName, captureThumbnail]);
+  }, [elements, canvasId, canvasName, captureThumbnail, userRole]);
 
   // Collaboration hook
   const { broadcastPatch, broadcastCursor } = useCollaboration({
@@ -1361,14 +1372,15 @@ export function InfiniteCanvas() {
 
   // Broadcast element changes to collaborators (skip if the change came from a remote patch)
   useEffect(() => {
-    if (isRemotePatch.current) return;
+    if (isRemotePatch.current || userRole === 'VIEWER') return;
     broadcastPatch(elements);
-  }, [elements, broadcastPatch]);
+  }, [elements, broadcastPatch, userRole]);
 
   // Handle Text editing overlay
   const editingElement = elements.find(el => el.id === editingTextId);
 
   const handleDoubleClick = (e: React.MouseEvent) => {
+    if (userRole === 'VIEWER') return;
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
     const cam = cameraRef.current;
@@ -1457,16 +1469,19 @@ export function InfiniteCanvas() {
           onKeyDown={(e) => {
             if (e.key === 'Enter') e.currentTarget.blur();
           }}
+          readOnly={userRole === 'VIEWER'}
         />
       </div>
 
-      <Toolbar
-        tool={tool} onTool={setTool}
-        onUndo={undo} onRedo={redo}
-        canUndo={past.length > 0} canRedo={future.length > 0}
-        theme={appState.theme}
-        onInsertImage={openImagePicker}
-      />
+      {userRole !== 'VIEWER' && (
+        <Toolbar
+          tool={tool} onTool={setTool}
+          onUndo={undo} onRedo={redo}
+          canUndo={past.length > 0} canRedo={future.length > 0}
+          theme={appState.theme}
+          onInsertImage={openImagePicker}
+        />
+      )}
 
       {(selectedIds.length > 0 || tool !== 'select' && tool !== 'hand') && (
         <PropertiesPanel
@@ -1506,27 +1521,29 @@ export function InfiniteCanvas() {
           </div>
         ))}
 
-        {/* Share Button */}
-        <button
-          title="Copy link to collaborate"
-          onClick={() => {
-            navigator.clipboard.writeText(window.location.href);
-            // Optionally, show a brief toast or change icon, but native clipboard is enough for now
-            alert('Link copied to clipboard! Share it with others to collaborate.');
-          }}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '6px 12px', borderRadius: 20,
-            background: 'linear-gradient(135deg, #06b6d4, #10b981)',
-            border: 'none', color: '#fff', fontSize: 12, fontWeight: 600,
-            cursor: 'pointer', boxShadow: '0 2px 10px rgba(6,182,212,0.3)',
-            transition: 'transform 0.2s',
-          }}
-          onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
-          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-        >
-          Share
-        </button>
+        {/* Share Button (Admin only) */}
+        {userRole === 'ADMIN' && (
+          <button
+            title="Share Canvas"
+            onClick={() => {
+              setIsShareModalOpen(true);
+              setShareStatus('idle');
+              setShareEmail('');
+            }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '6px 12px', borderRadius: 20,
+              background: 'linear-gradient(135deg, #06b6d4, #10b981)',
+              border: 'none', color: '#fff', fontSize: 12, fontWeight: 600,
+              cursor: 'pointer', boxShadow: '0 2px 10px rgba(6,182,212,0.3)',
+              transition: 'transform 0.2s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            Share
+          </button>
+        )}
 
         {/* Save status */}
         {saveStatus !== 'idle' && (
@@ -1602,13 +1619,20 @@ export function InfiniteCanvas() {
 
       <canvas
         ref={canvasRef}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
+        onPointerDown={(e) => {
+          if (userRole === 'VIEWER' && tool !== 'hand') return;
+          handlePointerDown(e);
+        }}
+        onPointerMove={(e) => {
+          if (userRole === 'VIEWER' && tool !== 'hand') return;
+          handlePointerMove(e);
+        }}
         onPointerUp={handlePointerUp}
         onDoubleClick={handleDoubleClick}
         style={{
           touchAction: 'none',
           cursor:
+            userRole === 'VIEWER' ? (tool === 'hand' || isPanning ? 'grab' : 'default') :
             tool === 'hand' || isPanning ? 'grab' :
               tool === 'laser' ? 'crosshair' :
                 tool === 'eraser' ? 'none' :
@@ -1806,6 +1830,100 @@ export function InfiniteCanvas() {
           theme={appState.theme}
           containerRef={containerRef}
         />
+      )}
+      {/* Share Modal */}
+      {isShareModalOpen && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+          background: 'rgba(0,0,0,0.5)', zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div style={{
+            background: appState.theme === 'dark' ? '#232329' : '#fff',
+            padding: 24, borderRadius: 12, width: 400,
+            boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
+            color: appState.theme === 'dark' ? '#fff' : '#000',
+          }}>
+            <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>Share Canvas</h2>
+            
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', marginBottom: 8, fontSize: 14 }}>Email Address</label>
+              <input
+                type="email"
+                value={shareEmail}
+                onChange={e => setShareEmail(e.target.value)}
+                placeholder="colleague@example.com"
+                style={{
+                  width: '100%', padding: '10px 12px', borderRadius: 8,
+                  border: `1px solid ${appState.theme === 'dark' ? '#3a3a44' : '#e2e2e2'}`,
+                  background: appState.theme === 'dark' ? '#1a1a1f' : '#f8f9fa',
+                  color: appState.theme === 'dark' ? '#fff' : '#000',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ display: 'block', marginBottom: 8, fontSize: 14 }}>Role</label>
+              <select
+                value={shareRole}
+                onChange={e => setShareRole(e.target.value as 'EDITOR' | 'VIEWER')}
+                style={{
+                  width: '100%', padding: '10px 12px', borderRadius: 8,
+                  border: `1px solid ${appState.theme === 'dark' ? '#3a3a44' : '#e2e2e2'}`,
+                  background: appState.theme === 'dark' ? '#1a1a1f' : '#f8f9fa',
+                  color: appState.theme === 'dark' ? '#fff' : '#000',
+                  boxSizing: 'border-box'
+                }}
+              >
+                <option value="VIEWER">Viewer (Can only view)</option>
+                <option value="EDITOR">Editor (Can view and edit)</option>
+              </select>
+            </div>
+
+            {shareError && <div style={{ color: '#ef4444', fontSize: 13, marginBottom: 16 }}>{shareError}</div>}
+            {shareStatus === 'success' && <div style={{ color: '#10b981', fontSize: 13, marginBottom: 16 }}>Canvas shared successfully!</div>}
+
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setIsShareModalOpen(false)}
+                style={{
+                  padding: '8px 16px', borderRadius: 6,
+                  background: 'transparent', border: 'none',
+                  color: appState.theme === 'dark' ? '#aaa' : '#666',
+                  cursor: 'pointer', fontWeight: 500
+                }}
+              >
+                Close
+              </button>
+              <button
+                disabled={shareStatus === 'loading' || !shareEmail}
+                onClick={async () => {
+                  if (!canvasId) return;
+                  setShareStatus('loading');
+                  setShareError('');
+                  try {
+                    await canvasApi.share(canvasId, shareEmail, shareRole);
+                    setShareStatus('success');
+                    setTimeout(() => setIsShareModalOpen(false), 2000);
+                  } catch (err: any) {
+                    setShareStatus('error');
+                    setShareError(err.message || 'Failed to share canvas');
+                  }
+                }}
+                style={{
+                  padding: '8px 16px', borderRadius: 6,
+                  background: 'linear-gradient(135deg, #06b6d4, #10b981)',
+                  border: 'none', color: '#fff', fontWeight: 600,
+                  cursor: shareStatus === 'loading' || !shareEmail ? 'not-allowed' : 'pointer',
+                  opacity: shareStatus === 'loading' || !shareEmail ? 0.7 : 1
+                }}
+              >
+                {shareStatus === 'loading' ? 'Sharing...' : 'Share'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>
