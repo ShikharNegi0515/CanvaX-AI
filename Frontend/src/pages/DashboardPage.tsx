@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Trash2, Cpu, LogOut, PenLine,
-  Clock, LayoutGrid, Search, ChevronRight, Loader2, Users,
+  LayoutGrid, Search, ChevronRight, Loader2, Users, Check, X,
 } from 'lucide-react';
 import { canvasApi, type CanvasData } from '../lib/api';
 import { useAuthStore } from '../store/useAuthStore';
@@ -46,6 +46,9 @@ export const DashboardPage = () => {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const renameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     canvasApi.list().then((list) => {
@@ -87,6 +90,27 @@ export const DashboardPage = () => {
   const handleLogout = () => {
     logout();
     navigate('/auth');
+  };
+
+  const startRename = (e: React.MouseEvent, canvas: CanvasData) => {
+    e.stopPropagation();
+    setRenamingId(canvas.id);
+    setRenameValue(canvas.name);
+    setTimeout(() => renameInputRef.current?.select(), 50);
+  };
+
+  const commitRename = async (id: string) => {
+    const trimmed = renameValue.trim();
+    if (!trimmed || trimmed === canvases.find(c => c.id === id)?.name) {
+      setRenamingId(null);
+      return;
+    }
+    try {
+      await canvasApi.rename(id, trimmed);
+      setCanvases(prev => prev.map(c => c.id === id ? { ...c, name: trimmed } : c));
+    } finally {
+      setRenamingId(null);
+    }
   };
 
   const filtered = canvases.filter((c) =>
@@ -145,15 +169,24 @@ export const DashboardPage = () => {
           {/* User + Logout */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{
-                width: '32px', height: '32px', borderRadius: '9999px',
-                background: 'linear-gradient(135deg, #06b6d4, #10b981)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '0.75rem', fontWeight: 700, color: '#fff', textTransform: 'uppercase',
-                boxShadow: '0 2px 12px rgba(6,182,212,0.3)',
-              }}>
-                {user?.name?.[0] ?? '?'}
-              </div>
+              {user?.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt={user.name}
+                  style={{ width: '32px', height: '32px', borderRadius: '9999px', objectFit: 'cover', boxShadow: '0 2px 12px rgba(6,182,212,0.3)' }}
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                />
+              ) : (
+                <div style={{
+                  width: '32px', height: '32px', borderRadius: '9999px',
+                  background: 'linear-gradient(135deg, #06b6d4, #10b981)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '0.75rem', fontWeight: 700, color: '#fff', textTransform: 'uppercase',
+                  boxShadow: '0 2px 12px rgba(6,182,212,0.3)',
+                }}>
+                  {user?.name?.[0] ?? '?'}
+                </div>
+              )}
               <span style={{ fontSize: '0.875rem', fontWeight: 500, color: C.text }}>{user?.name}</span>
             </div>
             <button
@@ -457,23 +490,47 @@ export const DashboardPage = () => {
                     )}
                   </div>
 
-                  {/* ── Airy Text Footer (Outside Card) ── */}
+                  {/* ── Text Footer (Outside Card) ── */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '4px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <h3 style={{
-                        margin: 0,
-                        fontWeight: 500, fontSize: '0.95rem',
-                        color: '#f4f4f5',
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}>
-                        {canvas.name}
-                      </h3>
-                      <ChevronRight style={{
-                        width: '16px', height: '16px',
-                        color: hoveredId === canvas.id ? '#fff' : 'transparent',
-                        transform: hoveredId === canvas.id ? 'translateX(0)' : 'translateX(-4px)',
-                        transition: 'all 0.2s',
-                      }} />
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                      {renamingId === canvas.id ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }} onClick={e => e.stopPropagation()}>
+                          <input
+                            ref={renameInputRef}
+                            value={renameValue}
+                            onChange={e => setRenameValue(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') commitRename(canvas.id); if (e.key === 'Escape') setRenamingId(null); }}
+                            autoFocus
+                            style={{
+                              flex: 1, background: 'rgba(6,182,212,0.08)',
+                              border: '1px solid rgba(6,182,212,0.4)', borderRadius: '6px',
+                              color: '#f4f4f5', fontSize: '0.9rem', padding: '2px 8px', outline: 'none',
+                            }}
+                          />
+                          <button onClick={() => commitRename(canvas.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#10b981', padding: '2px' }}><Check size={14}/></button>
+                          <button onClick={() => setRenamingId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: '2px' }}><X size={14}/></button>
+                        </div>
+                      ) : (
+                        <h3
+                          onDoubleClick={e => canvas.userId === user?.id && startRename(e, canvas)}
+                          title={canvas.userId === user?.id ? 'Double-click to rename' : undefined}
+                          style={{
+                            margin: 0, fontWeight: 500, fontSize: '0.95rem', color: '#f4f4f5',
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
+                            cursor: canvas.userId === user?.id ? 'text' : 'default',
+                          }}
+                        >
+                          {canvas.name}
+                        </h3>
+                      )}
+                      {renamingId !== canvas.id && (
+                        <ChevronRight style={{
+                          width: '16px', height: '16px', flexShrink: 0,
+                          color: hoveredId === canvas.id ? '#fff' : 'transparent',
+                          transform: hoveredId === canvas.id ? 'translateX(0)' : 'translateX(-4px)',
+                          transition: 'all 0.2s',
+                        }} />
+                      )}
                     </div>
                     
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.8rem', color: '#a1a1aa' }}>

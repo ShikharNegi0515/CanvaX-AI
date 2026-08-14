@@ -25,7 +25,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export interface AuthResponse {
   access_token: string;
-  user: { id: string; name: string; email: string };
+  user: { id: string; name: string; email: string; avatarUrl?: string };
 }
 
 export const authApi = {
@@ -80,6 +80,18 @@ export const canvasApi = {
     request(`/canvas/${id}/share`, {
       method: 'POST',
       body: JSON.stringify({ email, role }),
+    }),
+
+  rename: (id: string, name: string) =>
+    request<CanvasData>(`/canvas/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name }),
+    }),
+
+  saveThumbnail: (id: string, thumbnail: string) =>
+    request<CanvasData>(`/canvas/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ thumbnail }),
     }),
 
   delete: (id: string) =>
