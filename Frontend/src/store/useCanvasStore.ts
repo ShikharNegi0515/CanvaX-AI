@@ -15,7 +15,10 @@ export type Tool =
   | 'frame'
   | 'laser'
   | 'bucket'
-  | 'lasso';
+  | 'lasso'
+  | 'mindmap'
+  | 'comment'
+  | 'sticky';
 
 export type StrokeStyle = 'solid' | 'dashed' | 'dotted';
 export type FillStyle = 'solid' | 'hachure' | 'cross-hatch' | 'dots' | 'none';
@@ -24,11 +27,28 @@ export type EdgeStyle = 'sharp' | 'round';
 export type FontFamily = 'hand' | 'normal' | 'code' | 'serif' | 'comic' | 'impact';
 export type TextAlign = 'left' | 'center' | 'right';
 export type ArrowheadStyle = 'none' | 'arrow' | 'dot' | 'bar';
-export type ElementType = 'rectangle' | 'diamond' | 'ellipse' | 'arrow' | 'line' | 'draw' | 'text' | 'image' | 'frame';
+export type ElementType = 'rectangle' | 'diamond' | 'ellipse' | 'arrow' | 'line' | 'draw' | 'text' | 'image' | 'frame' | 'mindmap' | 'comment' | 'sticky';
 
 export interface ArrowBinding {
   elementId: string;
   point: 'top' | 'right' | 'bottom' | 'left';
+}
+
+export interface CommentReply {
+  id: string;
+  authorName: string;
+  authorAvatar?: string;
+  text: string;
+  createdAt: string;
+}
+
+export interface CommentData {
+  authorName: string;
+  authorAvatar?: string;
+  text: string;
+  createdAt: string;
+  resolved?: boolean;
+  replies?: CommentReply[];
 }
 
 export interface CanvasElement {
@@ -57,6 +77,13 @@ export interface CanvasElement {
   autoSize?: boolean; // for unbounded text boxes
   label?: string; // for frames
 
+  // Mindmap & Hierarchy
+  parentId?: string;
+  isRootMindmap?: boolean;
+
+  // Comment Specific
+  comment?: CommentData;
+
   // Appearance
   strokeColor?: string;
   backgroundColor?: string;
@@ -79,7 +106,6 @@ export interface CanvasElement {
   frameId?: string;
 
   // Locked
-  // Arrow bindings (snap-to-shape)
   startBinding?: ArrowBinding;
   endBinding?: ArrowBinding;
 

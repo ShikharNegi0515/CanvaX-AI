@@ -2,7 +2,7 @@ import { type Tool } from '../../store/useCanvasStore';
 import {
   MousePointer2, Hand, Square, Diamond, Circle, ArrowRight,
   Minus, Pencil, Type, Image, Eraser, FrameIcon, Undo2, Redo2,
-  Sparkles, MoreHorizontal, PaintBucket, Lasso
+  Sparkles, MoreHorizontal, PaintBucket, Lasso, StickyNote, MessageSquare, BrainCircuit, Bot, LayoutTemplate, History
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
@@ -15,6 +15,9 @@ interface ToolbarProps {
   canRedo: boolean;
   theme: 'light' | 'dark';
   onInsertImage: () => void;
+  onToggleTemplates?: () => void;
+  onToggleCopilot?: () => void;
+  onToggleHistory?: () => void;
 }
 
 const TOOL_GROUPS: { id: Tool; icon: React.ReactNode; label: string; key: string }[][] = [
@@ -32,19 +35,34 @@ const TOOL_GROUPS: { id: Tool; icon: React.ReactNode; label: string; key: string
   ],
   [
     { id: 'text',      icon: <Type size={18}/>,          label: 'Text',      key: 'T' },
+    { id: 'sticky',    icon: <StickyNote size={18}/>,    label: 'Sticky Note',key: 'N' },
+    { id: 'comment',   icon: <MessageSquare size={18}/>, label: 'Comment Pin',key: 'C' },
     { id: 'image',     icon: <Image size={18}/>,         label: 'Image',     key: 'I' },
     { id: 'eraser',    icon: <Eraser size={18}/>,        label: 'Eraser',    key: 'X' },
   ],
 ];
 
 const MORE_TOOLS: { id: Tool; icon: React.ReactNode; label: string; key: string }[] = [
+  { id: 'mindmap',   icon: <BrainCircuit size={18}/>,  label: 'Mind Map',  key: 'M' },
   { id: 'frame',     icon: <FrameIcon size={18}/>,     label: 'Frame',     key: 'F' },
   { id: 'laser',     icon: <Sparkles size={18}/>,      label: 'Laser',     key: 'K' },
   { id: 'bucket',    icon: <PaintBucket size={18}/>,   label: 'Bucket Fill',key: 'B' },
   { id: 'lasso',     icon: <Lasso size={18}/>,         label: 'Lasso',     key: 'O' },
 ];
 
-export function Toolbar({ tool, onTool, onUndo, onRedo, canUndo, canRedo, theme, onInsertImage }: ToolbarProps) {
+export function Toolbar({
+  tool,
+  onTool,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
+  theme,
+  onInsertImage,
+  onToggleTemplates,
+  onToggleCopilot,
+  onToggleHistory,
+}: ToolbarProps) {
   const isDark = theme === 'dark';
   const bg     = isDark ? '#232329' : '#ffffff';
   const border = isDark ? '#3a3a44' : '#e2e2e2';
@@ -89,7 +107,7 @@ export function Toolbar({ tool, onTool, onUndo, onRedo, canUndo, canRedo, theme,
       boxShadow: '0 2px 12px rgba(0,0,0,.12)',
     }}>
       {TOOL_GROUPS.map((group, gi) => (
-        <>
+        <div key={gi} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           {gi > 0 && divider}
           {group.map((t) => (
             <button
@@ -111,7 +129,7 @@ export function Toolbar({ tool, onTool, onUndo, onRedo, canUndo, canRedo, theme,
               {t.icon}
             </button>
           ))}
-        </>
+        </div>
       ))}
 
       <div ref={menuRef} style={{ position: 'relative' }}>
@@ -168,6 +186,27 @@ export function Toolbar({ tool, onTool, onUndo, onRedo, canUndo, canRedo, theme,
           </div>
         )}
       </div>
+
+      {divider}
+
+      {/* Feature Action Buttons */}
+      {onToggleTemplates && (
+        <button title="Templates Library" onClick={onToggleTemplates} style={{ ...btnBase, color: '#06b6d4' }}>
+          <LayoutTemplate size={18} />
+        </button>
+      )}
+
+      {onToggleCopilot && (
+        <button title="AI Copilot Chat" onClick={onToggleCopilot} style={{ ...btnBase, color: '#8b5cf6' }}>
+          <Bot size={18} />
+        </button>
+      )}
+
+      {onToggleHistory && (
+        <button title="Visual History Stack" onClick={onToggleHistory} style={{ ...btnBase, color: text }}>
+          <History size={18} />
+        </button>
+      )}
 
       {divider}
 

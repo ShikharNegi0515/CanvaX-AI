@@ -1,6 +1,6 @@
 export interface DiagramElement {
     id: string;
-    type: 'rectangle' | 'ellipse' | 'diamond' | 'text' | 'arrow' | 'line';
+    type: 'rectangle' | 'ellipse' | 'diamond' | 'text' | 'arrow' | 'line' | 'frame' | 'sticky';
     x: number;
     y: number;
     width?: number;
@@ -23,5 +23,15 @@ export declare class AiService {
     private _model;
     constructor();
     private getModel;
+    private cleanJsonResponse;
     generateDiagram(prompt: string): Promise<DiagramElement[]>;
+    beautifyDiagram(elements: DiagramElement[]): Promise<DiagramElement[]>;
+    transformElements(elements: DiagramElement[], instruction: string): Promise<DiagramElement[]>;
+    chatWithAi(messages: {
+        role: 'user' | 'assistant';
+        content: string;
+    }[], canvasElements?: DiagramElement[]): Promise<{
+        text: string;
+        newElements?: DiagramElement[];
+    }>;
 }

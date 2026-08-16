@@ -106,4 +106,22 @@ export const aiApi = {
       method: 'POST',
       body: JSON.stringify({ prompt }),
     }),
+
+  beautify: (elements: unknown[]) =>
+    request<{ elements: unknown[] }>('/ai/beautify', {
+      method: 'POST',
+      body: JSON.stringify({ elements }),
+    }),
+
+  transform: (elements: unknown[], prompt: string) =>
+    request<{ elements: unknown[] }>('/ai/transform', {
+      method: 'POST',
+      body: JSON.stringify({ elements, prompt }),
+    }),
+
+  chat: (messages: { role: 'user' | 'assistant'; content: string }[], canvasElements?: unknown[]) =>
+    request<{ text: string; newElements?: unknown[] }>('/ai/chat', {
+      method: 'POST',
+      body: JSON.stringify({ messages, canvasElements }),
+    }),
 };

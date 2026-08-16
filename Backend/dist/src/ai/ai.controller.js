@@ -17,6 +17,9 @@ const common_1 = require("@nestjs/common");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const ai_service_1 = require("./ai.service");
 const generate_diagram_dto_1 = require("./dto/generate-diagram.dto");
+const beautify_diagram_dto_1 = require("./dto/beautify-diagram.dto");
+const transform_elements_dto_1 = require("./dto/transform-elements.dto");
+const chat_assistant_dto_1 = require("./dto/chat-assistant.dto");
 let AiController = class AiController {
     aiService;
     constructor(aiService) {
@@ -25,6 +28,18 @@ let AiController = class AiController {
     async generate(dto) {
         const elements = await this.aiService.generateDiagram(dto.prompt);
         return { elements };
+    }
+    async beautify(dto) {
+        const elements = await this.aiService.beautifyDiagram(dto.elements);
+        return { elements };
+    }
+    async transform(dto) {
+        const elements = await this.aiService.transformElements(dto.elements, dto.prompt);
+        return { elements };
+    }
+    async chat(dto) {
+        const result = await this.aiService.chatWithAi(dto.messages, dto.canvasElements);
+        return result;
     }
 };
 exports.AiController = AiController;
@@ -35,6 +50,27 @@ __decorate([
     __metadata("design:paramtypes", [generate_diagram_dto_1.GenerateDiagramDto]),
     __metadata("design:returntype", Promise)
 ], AiController.prototype, "generate", null);
+__decorate([
+    (0, common_1.Post)('beautify'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [beautify_diagram_dto_1.BeautifyDiagramDto]),
+    __metadata("design:returntype", Promise)
+], AiController.prototype, "beautify", null);
+__decorate([
+    (0, common_1.Post)('transform'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [transform_elements_dto_1.TransformElementsDto]),
+    __metadata("design:returntype", Promise)
+], AiController.prototype, "transform", null);
+__decorate([
+    (0, common_1.Post)('chat'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [chat_assistant_dto_1.ChatAssistantDto]),
+    __metadata("design:returntype", Promise)
+], AiController.prototype, "chat", null);
 exports.AiController = AiController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('ai'),
