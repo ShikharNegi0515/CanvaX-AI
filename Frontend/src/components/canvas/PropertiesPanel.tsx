@@ -1,3 +1,4 @@
+import { Palette } from 'lucide-react';
 import { type CanvasElement, type CanvasState, type Tool } from '../../store/useCanvasStore';
 
 interface PropertiesPanelProps {
@@ -55,30 +56,76 @@ export function PropertiesPanel({
     </div>
   );
 
-  const ColorPicker = ({ label, options, value, onChange }: any) => (
-    <div>
-      <SectionTitle>{label}</SectionTitle>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        {options.map((c: string) => (
-          <button
-            key={c}
-            onClick={() => onChange(c)}
-            style={{
-              width: 28, height: 28, borderRadius: 6,
-              background: c === 'transparent' ? (isDark ? '#3a3a44' : '#f8f9fa') : c,
-              border: `2px solid ${value === c ? '#6965db' : border}`,
-              cursor: 'pointer',
-              position: 'relative'
-            }}
-          >
-            {c === 'transparent' && (
-              <div style={{ position: 'absolute', top: '50%', left: '50%', width: 24, height: 2, background: '#fa5252', transform: 'translate(-50%, -50%) rotate(45deg)' }} />
-            )}
-          </button>
-        ))}
+  const ColorPicker = ({ label, options, value, onChange, showCustom = true }: any) => {
+    const isCustom = showCustom && value && !options.includes(value) && value !== 'transparent';
+
+    return (
+      <div>
+        <SectionTitle>{label}</SectionTitle>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+          {options.map((c: string) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => onChange(c)}
+              style={{
+                width: 28, height: 28, borderRadius: 6,
+                background: c === 'transparent' ? (isDark ? '#3a3a44' : '#f8f9fa') : c,
+                border: `2px solid ${value === c ? '#6965db' : border}`,
+                cursor: 'pointer',
+                position: 'relative'
+              }}
+              title={c === 'transparent' ? 'Transparent' : c}
+            >
+              {c === 'transparent' && (
+                <div style={{ position: 'absolute', top: '50%', left: '50%', width: 24, height: 2, background: '#fa5252', transform: 'translate(-50%, -50%) rotate(45deg)' }} />
+              )}
+            </button>
+          ))}
+
+          {showCustom && (
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 6,
+                background: isCustom ? value : 'conic-gradient(from 90deg, #ff0000, #ff8000, #ffff00, #00ff00, #00ffff, #0000ff, #8000ff, #ff0080, #ff0000)',
+                border: `2px solid ${isCustom ? '#6965db' : border}`,
+                cursor: 'pointer',
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: isCustom ? '0 0 0 1px #6965db' : 'none',
+                flexShrink: 0,
+              }}
+              title="Custom Color"
+            >
+              {!isCustom && (
+                <Palette style={{ width: 14, height: 14, color: '#ffffff', filter: 'drop-shadow(0px 1px 2px rgba(0,0,0,0.8))', pointerEvents: 'none' }} />
+              )}
+              <input
+                type="color"
+                value={value && value !== 'transparent' ? value : '#000000'}
+                onChange={(e) => onChange(e.target.value)}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  opacity: 0,
+                  cursor: 'pointer',
+                  border: 'none',
+                  padding: 0,
+                }}
+              />
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const ButtonGroup = ({ label, options, value, onChange }: any) => (
     <div>

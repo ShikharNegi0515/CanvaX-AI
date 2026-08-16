@@ -353,14 +353,14 @@ export const DashboardPage = () => {
                 alignItems: 'center', justifyContent: 'center', gap: '12px',
                 transition: 'all 0.2s ease',
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)';
-                e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
-                e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
-              }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)';
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
+                }}
               >
                 <div style={{
                   width: '44px', height: '44px', borderRadius: '50%',
@@ -374,7 +374,7 @@ export const DashboardPage = () => {
                 </div>
                 <span style={{ fontSize: '0.9rem', fontWeight: 500, color: '#a1a1aa' }}>New canvas</span>
               </div>
-              
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '4px' }}>
                 <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#e4e4e7', visibility: 'hidden' }}>Spacer</span>
                 <span style={{ fontSize: '0.8rem', color: '#71717a', visibility: 'hidden' }}>Spacer</span>
@@ -409,15 +409,15 @@ export const DashboardPage = () => {
                     position: 'relative',
                     overflow: 'hidden',
                     border: '1px solid rgba(255,255,255,0.1)',
-                    boxShadow: hoveredId === canvas.id 
-                      ? '0 12px 32px rgba(0,0,0,0.4), 0 0 0 2px rgba(255,255,255,0.2)' 
+                    boxShadow: hoveredId === canvas.id
+                      ? '0 12px 32px rgba(0,0,0,0.4), 0 0 0 2px rgba(255,255,255,0.2)'
                       : '0 4px 12px rgba(0,0,0,0.2)',
                     transform: hoveredId === canvas.id ? 'translateY(-4px)' : 'translateY(0)',
                     transition: 'all 0.25s cubic-bezier(0.2, 0, 0, 1)',
                   }}>
                     {/* Pattern if no thumbnail to make it look nice */}
                     {!canvas.thumbnail && (
-                       <div style={{
+                      <div style={{
                         position: 'absolute', inset: 0,
                         backgroundImage: `linear-gradient(#f1f5f9 1px, transparent 1px), linear-gradient(90deg, #f1f5f9 1px, transparent 1px)`,
                         backgroundSize: '20px 20px',
@@ -507,8 +507,8 @@ export const DashboardPage = () => {
                               color: '#f4f4f5', fontSize: '0.9rem', padding: '2px 8px', outline: 'none',
                             }}
                           />
-                          <button onClick={() => commitRename(canvas.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#10b981', padding: '2px' }}><Check size={14}/></button>
-                          <button onClick={() => setRenamingId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: '2px' }}><X size={14}/></button>
+                          <button onClick={() => commitRename(canvas.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#10b981', padding: '2px' }}><Check size={14} /></button>
+                          <button onClick={() => setRenamingId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: '2px' }}><X size={14} /></button>
                         </div>
                       ) : (
                         <h3
@@ -532,7 +532,7 @@ export const DashboardPage = () => {
                         }} />
                       )}
                     </div>
-                    
+
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.8rem', color: '#a1a1aa' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         {formatDate(canvas.updatedAt)}
@@ -566,7 +566,3 @@ export const DashboardPage = () => {
     </div>
   );
 };
-
-
-
-
