@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Plus, Trash2, Cpu, LogOut, PenLine,
+  Plus, Trash2, Cpu, LogOut,
   LayoutGrid, Search, ChevronRight, Loader2, Users, Check, X,
 } from 'lucide-react';
 import { canvasApi, type CanvasData } from '../lib/api';

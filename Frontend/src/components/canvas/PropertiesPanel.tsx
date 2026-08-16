@@ -39,8 +39,11 @@ export function PropertiesPanel({
   const showTextProperties = tool === 'text' || selectedElements.some(el => el.type === 'text');
 
   const handleChange = <K extends keyof CanvasElement>(key: K, value: any) => {
-    if (selectedElements.length > 0) {
-      onUpdateElements(selectedElements.map((el) => ({ id: el.id, attrs: { [key]: value } })));
+    // Pencil strokes (draw type) should NEVER be mutated by the properties panel —
+    // only update the defaultStyle so the next stroke uses the new color/style.
+    const nonDrawSelected = selectedElements.filter((el) => el.type !== 'draw');
+    if (nonDrawSelected.length > 0) {
+      onUpdateElements(nonDrawSelected.map((el) => ({ id: el.id, attrs: { [key]: value } })));
     }
     // Always update default style so next element has this property
     onUpdateDefaultStyle({ [key]: value });
