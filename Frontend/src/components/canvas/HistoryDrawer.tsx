@@ -24,33 +24,28 @@ export function HistoryDrawer({
 
   return (
     <AnimatePresence>
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(4px)',
-          zIndex: 150,
-          display: 'flex',
-          justifyContent: 'flex-end',
-        }}
-        onClick={onClose}
-      >
+      {isOpen && (
         <motion.div
-          initial={{ x: 340, opacity: 0 }}
+          initial={{ x: 380, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          exit={{ x: 340, opacity: 0 }}
-          onClick={(e) => e.stopPropagation()}
+          exit={{ x: 380, opacity: 0 }}
+          transition={{ type: 'spring', damping: 25, stiffness: 220 }}
           style={{
-            width: 320,
-            height: '100vh',
+            position: 'fixed',
+            top: 70,
+            right: 16,
+            width: 340,
+            height: 'calc(100vh - 90px)',
             background: '#0d1526',
-            borderLeft: '1px solid rgba(6,182,212,0.2)',
-            padding: 20,
+            border: '1px solid rgba(6,182,212,0.25)',
+            borderRadius: 16,
+            zIndex: 400,
             display: 'flex',
             flexDirection: 'column',
+            padding: 20,
             gap: 16,
-            boxShadow: '-10px 0 30px rgba(0,0,0,0.5)',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(6,182,212,0.15)',
+            overflow: 'hidden',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -113,7 +108,7 @@ export function HistoryDrawer({
             })}
           </div>
         </motion.div>
-      </div>
+      )}
     </AnimatePresence>
   );
 }

@@ -94,10 +94,6 @@ export function AIPanel({ theme }: AIPanelProps) {
         title="Generate diagram with AI"
         onClick={() => setOpen(o => !o)}
         style={{
-          position: 'fixed',
-          bottom: 24,
-          right: 24,
-          zIndex: 300,
           display: 'flex',
           alignItems: 'center',
           gap: 8,

@@ -12,7 +12,47 @@ export function Minimap({ elements, zoom, pan, onPanChange }: MinimapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const MAP_SIZE = 160;
-  const SCALE = 0.05;
+  
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 800;
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 600;
+  
+  const viewX = -pan.x / zoom;
+  const viewY = -pan.y / zoom;
+  const viewW = vw / zoom;
+  const viewH = vh / zoom;
+
+  let minX = viewX;
+  let minY = viewY;
+  let maxX = viewX + viewW;
+  let maxY = viewY + viewH;
+
+  elements.forEach(el => {
+    const w = el.width || 40;
+    const h = el.height || 40;
+    const ex = (el.x || 0) + Math.min(0, w);
+    const ey = (el.y || 0) + Math.min(0, h);
+    const ew = Math.abs(w);
+    const eh = Math.abs(h);
+    
+    if (ex < minX) minX = ex;
+    if (ey < minY) minY = ey;
+    if (ex + ew > maxX) maxX = ex + ew;
+    if (ey + eh > maxY) maxY = ey + eh;
+  });
+
+  const padding = 100 / zoom;
+  minX -= padding;
+  minY -= padding;
+  maxX += padding;
+  maxY += padding;
+
+  const boundsW = maxX - minX;
+  const boundsH = maxY - minY;
+
+  // Compute scale and offsets to fit everything inside MAP_SIZE
+  const scale = Math.min(MAP_SIZE / boundsW, MAP_SIZE / boundsH, 0.1); // Max scale 0.1
+  const offsetX = (MAP_SIZE - boundsW * scale) / 2 - minX * scale;
+  const offsetY = (MAP_SIZE - boundsH * scale) / 2 - minY * scale;
 
   const handleMinimapClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
@@ -20,11 +60,13 @@ export function Minimap({ elements, zoom, pan, onPanChange }: MinimapProps) {
     const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
 
-    // Convert map coordinates back to canvas pan
-    const targetCanvasX = (clickX - MAP_SIZE / 2) / SCALE;
-    const targetCanvasY = (clickY - MAP_SIZE / 2) / SCALE;
+    const targetCanvasX = (clickX - offsetX) / scale;
+    const targetCanvasY = (clickY - offsetY) / scale;
 
-    onPanChange({ x: -targetCanvasX * zoom, y: -targetCanvasY * zoom });
+    const newViewX = targetCanvasX - viewW / 2;
+    const newViewY = targetCanvasY - viewH / 2;
+
+    onPanChange({ x: -newViewX * zoom, y: -newViewY * zoom });
   };
 
   return (
@@ -34,7 +76,7 @@ export function Minimap({ elements, zoom, pan, onPanChange }: MinimapProps) {
       style={{
         position: 'fixed',
         bottom: 20,
-        right: 20,
+        left: 20,
         width: MAP_SIZE,
         height: MAP_SIZE,
         background: '#0d1526',
@@ -60,10 +102,17 @@ export function Minimap({ elements, zoom, pan, onPanChange }: MinimapProps) {
 
       {/* Render mini elements */}
       {elements.map((el) => {
-        const miniX = (el.x || 0) * SCALE + MAP_SIZE / 2;
-        const miniY = (el.y || 0) * SCALE + MAP_SIZE / 2;
-        const miniW = Math.max((el.width || 40) * SCALE, 4);
-        const miniH = Math.max((el.height || 40) * SCALE, 4);
+        const w = el.width || 40;
+        const h = el.height || 40;
+        const absW = Math.abs(w);
+        const absH = Math.abs(h);
+        const x = (el.x || 0) + Math.min(0, w);
+        const y = (el.y || 0) + Math.min(0, h);
+
+        const miniX = x * scale + offsetX;
+        const miniY = y * scale + offsetY;
+        const miniW = Math.max(absW * scale, 3);
+        const miniH = Math.max(absH * scale, 3);
 
         return (
           <div
@@ -75,7 +124,7 @@ export function Minimap({ elements, zoom, pan, onPanChange }: MinimapProps) {
               width: miniW,
               height: miniH,
               background: el.strokeColor || '#06b6d4',
-              borderRadius: 2,
+              borderRadius: el.type === 'ellipse' ? '50%' : 2,
               opacity: 0.8,
             }}
           />
@@ -86,14 +135,15 @@ export function Minimap({ elements, zoom, pan, onPanChange }: MinimapProps) {
       <div
         style={{
           position: 'absolute',
-          left: (-pan.x / zoom) * SCALE + MAP_SIZE / 2 - 20,
-          top: (-pan.y / zoom) * SCALE + MAP_SIZE / 2 - 15,
-          width: 40,
-          height: 30,
+          left: viewX * scale + offsetX,
+          top: viewY * scale + offsetY,
+          width: viewW * scale,
+          height: viewH * scale,
           border: '1.5px solid #06b6d4',
           borderRadius: 4,
           background: 'rgba(6,182,212,0.15)',
           pointerEvents: 'none',
+          boxShadow: '0 0 0 9999px rgba(13,21,38,0.4)', // Darken outside viewport
         }}
       />
     </div>

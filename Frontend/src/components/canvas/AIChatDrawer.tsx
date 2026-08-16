@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, Send, X, Sparkles, Loader2, ArrowRight } from 'lucide-react';
+import { Bot, Send, X, Sparkles, Loader2 } from 'lucide-react';
 import { aiApi } from '../../lib/api';
 import { type CanvasElement } from '../../store/useCanvasStore';
 
@@ -106,7 +106,7 @@ export function AIChatDrawer({
             background: '#0d1526',
             border: '1px solid rgba(6,182,212,0.25)',
             borderRadius: 16,
-            zIndex: 120,
+            zIndex: 400,
             display: 'flex',
             flexDirection: 'column',
             boxShadow: '0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(6,182,212,0.15)',
@@ -116,6 +116,7 @@ export function AIChatDrawer({
           {/* Header */}
           <div
             style={{
+              flexShrink: 0,
               padding: '14px 16px',
               borderBottom: '1px solid rgba(6,182,212,0.15)',
               display: 'flex',
@@ -165,6 +166,7 @@ export function AIChatDrawer({
           <div
             style={{
               flex: 1,
+              minHeight: 0,
               padding: 16,
               overflowY: 'auto',
               display: 'flex',
@@ -234,6 +236,7 @@ export function AIChatDrawer({
           {/* Quick Prompts */}
           <div
             style={{
+              flexShrink: 0,
               padding: '8px 12px',
               borderTop: '1px solid rgba(255,255,255,0.06)',
               display: 'flex',
@@ -264,6 +267,7 @@ export function AIChatDrawer({
           {/* Input Area */}
           <div
             style={{
+              flexShrink: 0,
               padding: 12,
               borderTop: '1px solid rgba(6,182,212,0.15)',
               display: 'flex',

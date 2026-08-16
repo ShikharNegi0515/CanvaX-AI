@@ -11,7 +11,7 @@ interface PresenceBarProps {
   currentUser?: { name?: string; email?: string };
 }
 
-export function PresenceBar({ collaborators, currentUser }: PresenceBarProps) {
+export function PresenceBar({ collaborators }: PresenceBarProps) {
   if (collaborators.length === 0) return null;
 
   return (

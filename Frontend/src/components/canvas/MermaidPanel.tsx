@@ -64,7 +64,6 @@ export function MermaidPanel({ theme }: MermaidPanelProps) {
         title="Import Mermaid diagram"
         onClick={() => setOpen(o => !o)}
         style={{
-          position: 'fixed', bottom: 24, right: 180, zIndex: 300,
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '10px 16px', borderRadius: 100, border: 'none',
           cursor: 'pointer',
@@ -84,7 +83,7 @@ export function MermaidPanel({ theme }: MermaidPanelProps) {
 
       {open && (
         <div style={{
-          position: 'fixed', bottom: 78, right: 180, zIndex: 300,
+          position: 'fixed', bottom: 78, right: 24, zIndex: 300,
           width: 400, borderRadius: 16,
           background: bg, border: `1px solid ${border}`,
           boxShadow: isDark ? '0 20px 60px rgba(0,0,0,0.6)' : '0 20px 60px rgba(0,0,0,0.12)',

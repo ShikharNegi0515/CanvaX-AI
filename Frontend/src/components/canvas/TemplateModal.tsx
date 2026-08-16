@@ -1,15 +1,43 @@
-import { motion, AnimatePresence } from 'framer-motion';
-import { Layout, Server, GitMerge, BrainCircuit, Columns, X, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Server, GitMerge, BrainCircuit, Columns, X, Sparkles } from 'lucide-react';
 import { type CanvasElement } from '../../store/useCanvasStore';
 
 interface TemplateModalProps {
   isOpen: boolean;
   onClose: () => void;
+  viewportCenter: { x: number; y: number };
   onSelectTemplate: (elements: CanvasElement[]) => void;
 }
 
-export function TemplateModal({ isOpen, onClose, onSelectTemplate }: TemplateModalProps) {
+export function TemplateModal({ isOpen, onClose, viewportCenter, onSelectTemplate }: TemplateModalProps) {
   if (!isOpen) return null;
+
+  const applyTemplate = (els: CanvasElement[]) => {
+    // Compute bounding box of template elements
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    els.forEach(el => {
+      const x = el.x ?? 0;
+      const y = el.y ?? 0;
+      const w = Math.abs(el.width ?? 0);
+      const h = Math.abs(el.height ?? 0);
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x + w > maxX) maxX = x + w;
+      if (y + h > maxY) maxY = y + h;
+    });
+    const templateCenterX = (minX + maxX) / 2;
+    const templateCenterY = (minY + maxY) / 2;
+    const dx = viewportCenter.x - templateCenterX;
+    const dy = viewportCenter.y - templateCenterY;
+
+    const translated = els.map(el => ({
+      ...el,
+      id: crypto.randomUUID(),
+      x: (el.x ?? 0) + dx,
+      y: (el.y ?? 0) + dy,
+    }));
+    onSelectTemplate(translated);
+  };
 
   const templates: {
     id: string;
@@ -136,7 +164,7 @@ export function TemplateModal({ isOpen, onClose, onSelectTemplate }: TemplateMod
               <div
                 key={t.id}
                 onClick={() => {
-                  onSelectTemplate(t.getElements());
+                  applyTemplate(t.getElements());
                   onClose();
                 }}
                 style={{

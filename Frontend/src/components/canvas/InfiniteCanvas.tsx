@@ -17,6 +17,14 @@ import { MermaidPanel } from './MermaidPanel';
 import { PresentationMode } from './PresentationMode';
 import { findSnapTarget, getUpdatedBoundArrows } from '../../lib/connection-utils';
 import { useCollaboration, type RemoteCursor, type Collaborator } from '../../hooks/useCollaboration';
+import { MultiplayerCursors } from './MultiplayerCursors';
+import { PresenceBar } from './PresenceBar';
+import { AIChatDrawer } from './AIChatDrawer';
+import { AISelectionToolbar } from './AISelectionToolbar';
+import { TemplateModal } from './TemplateModal';
+import { Minimap } from './Minimap';
+
+import { CommentsLayer } from './CommentsLayer';
 
 export function InfiniteCanvas() {
   const { id: routeId } = useParams();
@@ -109,10 +117,50 @@ export function InfiniteCanvas() {
   const [shareStatus, setShareStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [shareError, setShareError] = useState('');
 
-  // Collaboration state
+  // Collaboration & Feature Modal State
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [remoteCursors, setRemoteCursors] = useState<Record<string, RemoteCursor>>({});
   const isRemotePatch = useRef(false);
+
+  const [isCopilotOpen, setIsCopilotOpen] = useState(false);
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+
+
+  const { broadcastPatch, broadcastCursor } = useCollaboration({
+    canvasId,
+    token: localStorage.getItem('canvax_token'),
+    onRemotePatch: (remoteElements) => {
+      isRemotePatch.current = true;
+      setElements(remoteElements as CanvasElement[]);
+    },
+    onCursorMove: (cursor) => {
+      setRemoteCursors((prev) => ({ ...prev, [cursor.userId]: cursor }));
+    },
+    onUserJoined: (u) => {
+      setCollaborators((prev) => [...prev.filter((c) => c.userId !== u.userId), u]);
+    },
+    onUserLeft: (uid) => {
+      setCollaborators((prev) => prev.filter((c) => c.userId !== uid));
+      setRemoteCursors((prev) => {
+        const copy = { ...prev };
+        delete copy[uid];
+        return copy;
+      });
+    },
+    onCollaboratorsUpdate: (collabs) => {
+      setCollaborators(collabs);
+    },
+  });
+
+  useEffect(() => {
+    if (isRemotePatch.current) {
+      isRemotePatch.current = false;
+      return;
+    }
+    if (canvasId) {
+      broadcastPatch(elements);
+    }
+  }, [elements, canvasId, broadcastPatch]);
 
   const getPointer = (e: React.PointerEvent | PointerEvent) => {
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -223,11 +271,74 @@ export function InfiniteCanvas() {
           return;
         }
       }
+      // Mindmap Tab (sub-node) and Enter (sibling node) auto-branching
+      if (selectedIds.length === 1 && !e.ctrlKey && !e.metaKey) {
+        const selected = elements.find(el => el.id === selectedIds[0]);
+        if (selected && selected.type === 'mindmap') {
+          if (e.key === 'Tab') {
+            e.preventDefault();
+            const childrenCount = elements.filter(el => el.parentId === selected.id).length;
+            const childId = crypto.randomUUID();
+            const newNode: CanvasElement = {
+              id: childId,
+              type: 'mindmap',
+              parentId: selected.id,
+              x: (selected.x ?? 0) + (selected.width ?? 160) + 60,
+              y: (selected.y ?? 0) + (childrenCount * 65),
+              width: 140,
+              height: 50,
+              text: 'Sub-node',
+              backgroundColor: '#e0f2fe',
+              strokeColor: '#0284c7',
+              fillStyle: 'solid',
+              roughness: 0,
+            };
+            const arrowNode: CanvasElement = {
+              id: crypto.randomUUID(),
+              type: 'arrow',
+              x: (selected.x ?? 0) + (selected.width ?? 160),
+              y: (selected.y ?? 0) + (selected.height ?? 50) / 2,
+              points: [0, 0, 60, childrenCount * 65],
+              endArrowhead: 'arrow',
+              strokeColor: '#0284c7',
+            };
+            setElements([...elements, newNode, arrowNode]);
+            setSelectedIds([childId]);
+            commit();
+            return;
+          }
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            const parentId = selected.parentId;
+            const siblingsCount = elements.filter(el => el.parentId === parentId).length;
+            const siblingId = crypto.randomUUID();
+            const newNode: CanvasElement = {
+              id: siblingId,
+              type: 'mindmap',
+              parentId,
+              x: selected.x ?? 0,
+              y: (selected.y ?? 0) + (siblingsCount * 65) + 65,
+              width: 140,
+              height: 50,
+              text: 'Sibling node',
+              backgroundColor: '#dcfce7',
+              strokeColor: '#16a34a',
+              fillStyle: 'solid',
+              roughness: 0,
+            };
+            setElements([...elements, newNode]);
+            setSelectedIds([siblingId]);
+            commit();
+            return;
+          }
+        }
+      }
+
       const map: Record<string, Tool> = {
         v: 'select', h: 'hand', r: 'rectangle', d: 'diamond',
         e: 'ellipse', a: 'arrow', l: 'line', p: 'draw',
         t: 'text', f: 'frame', x: 'eraser', k: 'laser',
-        b: 'bucket', o: 'lasso',
+        b: 'bucket', o: 'lasso', n: 'sticky', c: 'comment', m: 'mindmap',
       };
       if (e.key === 'i' || e.key === 'I') { openImagePicker(); return; }
       if (e.key === 'Escape') { setTool('select'); setSelectedIds([]); return; }
@@ -744,6 +855,71 @@ export function InfiniteCanvas() {
     if (tool === 'lasso') {
       isLassoing.current = true;
       setLassoPoints([ptr]);
+      return;
+    }
+
+    if (tool === 'sticky') {
+      const id = crypto.randomUUID();
+      addElement({
+        id,
+        type: 'sticky',
+        x: ptr.x,
+        y: ptr.y,
+        width: 180,
+        height: 140,
+        text: 'New Sticky Note',
+        backgroundColor: '#fef08a',
+        strokeColor: '#ca8a04',
+        fillStyle: 'solid',
+        roughness: 0,
+      });
+      setTool('select');
+      setSelectedIds([id]);
+      commit();
+      return;
+    }
+
+    if (tool === 'comment') {
+      const id = crypto.randomUUID();
+      addElement({
+        id,
+        type: 'comment',
+        x: ptr.x,
+        y: ptr.y,
+        width: 32,
+        height: 32,
+        comment: {
+          authorName: user?.name || user?.email?.split('@')[0] || 'User',
+          authorAvatar: user?.avatarUrl,
+          text: 'New comment thread',
+          createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+      });
+      setTool('select');
+      setSelectedIds([id]);
+      commit();
+      return;
+    }
+
+    if (tool === 'mindmap') {
+      const id = crypto.randomUUID();
+      addElement({
+        id,
+        type: 'mindmap',
+        isRootMindmap: true,
+        x: ptr.x,
+        y: ptr.y,
+        width: 160,
+        height: 60,
+        text: 'Central Topic',
+        backgroundColor: '#8b5cf6',
+        strokeColor: '#7c3aed',
+        fillStyle: 'solid',
+        roughness: 0,
+      });
+      setTool('select');
+      setSelectedIds([id]);
+      commit();
       return;
     }
 
@@ -1339,42 +1515,6 @@ export function InfiniteCanvas() {
     return () => clearTimeout(t);
   }, [elements, canvasId, canvasName, captureThumbnail, userRole]);
 
-  // Collaboration hook
-  const { broadcastPatch, broadcastCursor } = useCollaboration({
-    canvasId,
-    token: useAuthStore.getState().token,
-    onRemotePatch: useCallback((remoteElements: unknown[]) => {
-      isRemotePatch.current = true;
-      setElements(remoteElements as CanvasElement[]);
-      setTimeout(() => { isRemotePatch.current = false; }, 0);
-    }, [setElements]),
-    onCursorMove: useCallback((cursor: RemoteCursor) => {
-      setRemoteCursors(prev => ({ ...prev, [cursor.userId]: cursor }));
-    }, []),
-    onUserJoined: useCallback((user: Collaborator) => {
-      setCollaborators(prev => {
-        if (prev.find(c => c.userId === user.userId)) return prev;
-        return [...prev, user];
-      });
-    }, []),
-    onUserLeft: useCallback((userId: string) => {
-      setCollaborators(prev => prev.filter(c => c.userId !== userId));
-      setRemoteCursors(prev => {
-        const next = { ...prev };
-        delete next[userId];
-        return next;
-      });
-    }, []),
-    onCollaboratorsUpdate: useCallback((list: Collaborator[]) => {
-      setCollaborators(list);
-    }, []),
-  });
-
-  // Broadcast element changes to collaborators (skip if the change came from a remote patch)
-  useEffect(() => {
-    if (isRemotePatch.current || userRole === 'VIEWER') return;
-    broadcastPatch(elements);
-  }, [elements, broadcastPatch, userRole]);
 
   // Handle Text editing overlay
   const editingElement = elements.find(el => el.id === editingTextId);
@@ -1480,6 +1620,9 @@ export function InfiniteCanvas() {
           canUndo={past.length > 0} canRedo={future.length > 0}
           theme={appState.theme}
           onInsertImage={openImagePicker}
+          onToggleTemplates={() => setIsTemplateModalOpen(true)}
+          onToggleCopilot={() => setIsCopilotOpen(true)}
+
         />
       )}
 
@@ -1500,26 +1643,8 @@ export function InfiniteCanvas() {
         position: 'fixed', top: 12, right: 16, zIndex: 200,
         display: 'flex', alignItems: 'center', gap: 8,
       }}>
-        {/* Collaborator avatars */}
-        {collaborators.map(c => (
-          <div
-            key={c.userId}
-            title={c.name}
-            style={{
-              width: 28, height: 28, borderRadius: '50%',
-              background: c.color,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 11, fontWeight: 700, color: '#fff',
-              fontFamily: 'Inter, sans-serif',
-              boxShadow: `0 0 0 2px ${c.color}55, 0 2px 8px rgba(0,0,0,0.25)`,
-              cursor: 'default',
-              transition: 'transform 0.2s',
-              flexShrink: 0,
-            }}
-          >
-            {c.name?.[0]?.toUpperCase() ?? '?'}
-          </div>
-        ))}
+        {/* Collaborator Presence Bar */}
+        <PresenceBar collaborators={collaborators} currentUser={user || undefined} />
 
         {/* Share Button (Admin only) */}
         {userRole === 'ADMIN' && (
@@ -1790,34 +1915,42 @@ export function InfiniteCanvas() {
         );
       })() : null}
 
-      {/* AI Diagram Generation Panel */}
-      <AIPanel theme={appState.theme} />
 
-      {/* Mermaid Import Panel */}
-      <MermaidPanel theme={appState.theme} />
 
-      {/* Presentation Mode launch button */}
+      {/* ── Bottom-right action bar: Present · Mermaid · AI Generate ── */}
       {!isPresentationMode && (
-        <button
-          id="presentation-mode-btn"
-          title="Presentation Mode (Frames as Slides)"
-          onClick={() => setIsPresentationMode(true)}
-          style={{
-            position: 'fixed', bottom: 24, right: 330, zIndex: 300,
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '10px 16px', borderRadius: 100, border: 'none',
-            cursor: 'pointer',
-            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-            color: '#fff', fontWeight: 600, fontSize: 14,
-            fontFamily: 'Inter, sans-serif',
-            boxShadow: '0 4px 20px rgba(245,158,11,0.4)',
-            transition: 'all 0.2s ease',
-          }}
-          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.05)'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'; }}
-        >
-          ▶ Present
-        </button>
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 300,
+          display: 'flex', alignItems: 'center', gap: 10,
+          pointerEvents: 'auto',
+        }}>
+          {/* Present */}
+          <button
+            id="presentation-mode-btn"
+            title="Presentation Mode (Frames as Slides)"
+            onClick={() => setIsPresentationMode(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '10px 16px', borderRadius: 100, border: 'none',
+              cursor: 'pointer',
+              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+              color: '#fff', fontWeight: 600, fontSize: 14,
+              fontFamily: 'Inter, sans-serif',
+              boxShadow: '0 4px 20px rgba(245,158,11,0.4)',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.05)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'; }}
+          >
+            ▶ Present
+          </button>
+
+          {/* Mermaid — button rendered here, panel still fixed-positioned by MermaidPanel */}
+          <MermaidPanel theme={appState.theme} />
+
+          {/* AI Generate — button rendered here, panel still fixed-positioned by AIPanel */}
+          <AIPanel theme={appState.theme} />
+        </div>
       )}
 
       {/* Presentation Mode overlay */}
@@ -1925,6 +2058,58 @@ export function InfiniteCanvas() {
           </div>
         </div>
       )}
+
+      {/* Multiplayer Cursors */}
+      <MultiplayerCursors
+        cursors={Object.values(remoteCursors)}
+        zoom={camera.zoom}
+        pan={{ x: camera.x, y: camera.y }}
+      />
+
+      {/* Pinned Comments Layer */}
+      <CommentsLayer
+        elements={elements}
+        zoom={camera.zoom}
+        pan={{ x: camera.x, y: camera.y }}
+        currentUser={user || undefined}
+        onUpdateElement={updateElement}
+      />
+
+      {/* Floating AI Actions Toolbar for Selected Elements */}
+      <AISelectionToolbar
+        selectedElements={elements.filter(el => selectedIds.includes(el.id))}
+        onReplaceElements={(newEls) => { setElements(newEls); commit(); }}
+        onAddElements={(newEls) => { setElements([...elements, ...newEls]); commit(); }}
+      />
+
+      {/* AI Copilot Drawer */}
+      <AIChatDrawer
+        isOpen={isCopilotOpen}
+        onClose={() => setIsCopilotOpen(false)}
+        canvasElements={elements}
+        onAddElements={(newEls) => { setElements([...elements, ...newEls]); commit(); }}
+      />
+
+      {/* Pre-built Templates Gallery Modal */}
+      <TemplateModal
+        isOpen={isTemplateModalOpen}
+        onClose={() => setIsTemplateModalOpen(false)}
+        viewportCenter={{
+          x: (-camera.x + window.innerWidth / 2) / camera.zoom,
+          y: (-camera.y + window.innerHeight / 2) / camera.zoom,
+        }}
+        onSelectTemplate={(newEls) => { setElements([...elements, ...newEls]); commit(); }}
+      />
+
+      {/* Radar Minimap */}
+      <Minimap
+        elements={elements}
+        zoom={camera.zoom}
+        pan={{ x: camera.x, y: camera.y }}
+        onPanChange={(newPan) => setCamera(prev => ({ ...prev, x: newPan.x, y: newPan.y }))}
+      />
+
+
 
     </div>
   );

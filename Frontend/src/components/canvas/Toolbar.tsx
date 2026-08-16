@@ -2,7 +2,7 @@ import { type Tool } from '../../store/useCanvasStore';
 import {
   MousePointer2, Hand, Square, Diamond, Circle, ArrowRight,
   Minus, Pencil, Type, Image, Eraser, FrameIcon, Undo2, Redo2,
-  Sparkles, MoreHorizontal, PaintBucket, Lasso, StickyNote, MessageSquare, BrainCircuit, Bot, LayoutTemplate, History
+  Sparkles, MoreHorizontal, PaintBucket, Lasso, StickyNote, MessageSquare, BrainCircuit, Bot, LayoutTemplate
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
@@ -17,7 +17,7 @@ interface ToolbarProps {
   onInsertImage: () => void;
   onToggleTemplates?: () => void;
   onToggleCopilot?: () => void;
-  onToggleHistory?: () => void;
+
 }
 
 const TOOL_GROUPS: { id: Tool; icon: React.ReactNode; label: string; key: string }[][] = [
@@ -61,7 +61,7 @@ export function Toolbar({
   onInsertImage,
   onToggleTemplates,
   onToggleCopilot,
-  onToggleHistory,
+
 }: ToolbarProps) {
   const isDark = theme === 'dark';
   const bg     = isDark ? '#232329' : '#ffffff';
@@ -202,11 +202,7 @@ export function Toolbar({
         </button>
       )}
 
-      {onToggleHistory && (
-        <button title="Visual History Stack" onClick={onToggleHistory} style={{ ...btnBase, color: text }}>
-          <History size={18} />
-        </button>
-      )}
+
 
       {divider}
 
