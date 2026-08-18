@@ -65,8 +65,8 @@ export function PresentationMode({ elements, camera: _camera, setCamera, onExit,
     if (frames.length > 0) goTo(0);
   }, []);  // eslint-disable-line
 
-  const prev = () => goTo(Math.max(0, current - 1));
-  const next = () => goTo(Math.min(frames.length - 1, current + 1));
+  const prev = useCallback(() => goTo(Math.max(0, current - 1)), [goTo, current]);
+  const next = useCallback(() => goTo(Math.min(frames.length - 1, current + 1)), [goTo, current, frames.length]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -76,7 +76,7 @@ export function PresentationMode({ elements, camera: _camera, setCamera, onExit,
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [current, frames.length]);
+  }, [next, prev, onExit]);
 
   if (frames.length === 0) {
     return (

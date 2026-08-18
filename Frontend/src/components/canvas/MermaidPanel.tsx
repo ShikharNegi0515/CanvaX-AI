@@ -15,9 +15,10 @@ const EXAMPLE = `flowchart LR
 
 interface MermaidPanelProps {
   theme: 'light' | 'dark';
+  camera?: { x: number; y: number; zoom: number };
 }
 
-export function MermaidPanel({ theme }: MermaidPanelProps) {
+export function MermaidPanel({ theme, camera = { x: 0, y: 0, zoom: 1 } }: MermaidPanelProps) {
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -42,10 +43,47 @@ export function MermaidPanel({ theme }: MermaidPanelProps) {
         setError('No elements found. Check your Mermaid syntax.');
         return;
       }
+      // Compute bounding box of Mermaid elements
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      elements.forEach(el => {
+        const x = el.x ?? 0;
+        const y = el.y ?? 0;
+        const w = Math.abs(el.width ?? 0);
+        const h = Math.abs(el.height ?? 0);
+        
+        // For lines/arrows
+        if (el.points && el.points.length > 0) {
+          const xs = el.points.filter((_, i) => i % 2 === 0).map(px => px + x);
+          const ys = el.points.filter((_, i) => i % 2 !== 0).map(py => py + y);
+          minX = Math.min(minX, ...xs);
+          maxX = Math.max(maxX, ...xs);
+          minY = Math.min(minY, ...ys);
+          maxY = Math.max(maxY, ...ys);
+        } else {
+          minX = Math.min(minX, x);
+          maxX = Math.max(maxX, x + w);
+          minY = Math.min(minY, y);
+          maxY = Math.max(maxY, y + h);
+        }
+      });
+      
+      const genCenterX = (minX + maxX) / 2;
+      const genCenterY = (minY + maxY) / 2;
+
+      const viewportCenterX = (window.innerWidth / 2 - camera.x) / camera.zoom;
+      const viewportCenterY = (window.innerHeight / 2 - camera.y) / camera.zoom;
+
+      const dx = viewportCenterX - genCenterX;
+      const dy = viewportCenterY - genCenterY;
+
       const ids: string[] = [];
       elements.forEach(el => {
         ids.push(el.id);
-        addElement(el);
+        addElement({
+          ...el,
+          x: (el.x || 0) + dx,
+          y: (el.y || 0) + dy
+        });
       });
       setSelectedIds(ids);
       commit();

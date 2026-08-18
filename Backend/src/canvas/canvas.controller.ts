@@ -11,7 +11,11 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CanvasService } from './canvas.service';
-import { CreateCanvasDto, SaveCanvasDto, ShareCanvasDto } from './dto/canvas.dto';
+import {
+  CreateCanvasDto,
+  SaveCanvasDto,
+  ShareCanvasDto,
+} from './dto/canvas.dto';
 
 type AuthRequest = { user: { id: string; email: string } };
 
@@ -36,7 +40,11 @@ export class CanvasController {
   }
 
   @Patch(':id')
-  save(@Param('id') id: string, @Request() req: AuthRequest, @Body() dto: SaveCanvasDto) {
+  save(
+    @Param('id') id: string,
+    @Request() req: AuthRequest,
+    @Body() dto: SaveCanvasDto,
+  ) {
     return this.canvasService.save(id, req.user.id, dto);
   }
 
@@ -46,7 +54,11 @@ export class CanvasController {
   }
 
   @Post(':id/share')
-  share(@Param('id') id: string, @Request() req: AuthRequest, @Body() dto: ShareCanvasDto) {
+  share(
+    @Param('id') id: string,
+    @Request() req: AuthRequest,
+    @Body() dto: ShareCanvasDto,
+  ) {
     return this.canvasService.share(id, req.user.id, dto);
   }
 }

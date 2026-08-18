@@ -686,7 +686,7 @@ export function InfiniteCanvas() {
 
       return ptr.x >= ex - pad && ptr.x <= ex + ew + pad && ptr.y >= ey - pad && ptr.y <= ey + eh + pad;
     });
-  }, [elements]);
+  }, [elements, camera.zoom]);
 
   // Helper: distance from point to line segment
   const distToSeg = (p: {x:number,y:number}, a: {x:number,y:number}, b: {x:number,y:number}) => {
@@ -1468,7 +1468,7 @@ export function InfiniteCanvas() {
     };
     init();
     return () => { cancelled = true; };
-  }, [user, routeId, navigate]);
+  }, [user, routeId, navigate, setElements]);
 
   // Capture a thumbnail from the canvas element
   const captureThumbnail = useCallback((): string | undefined => {
@@ -1946,10 +1946,10 @@ export function InfiniteCanvas() {
           </button>
 
           {/* Mermaid — button rendered here, panel still fixed-positioned by MermaidPanel */}
-          <MermaidPanel theme={appState.theme} />
+          <MermaidPanel theme={appState.theme} camera={camera} />
 
           {/* AI Generate — button rendered here, panel still fixed-positioned by AIPanel */}
-          <AIPanel theme={appState.theme} />
+          <AIPanel theme={appState.theme} camera={camera} />
         </div>
       )}
 

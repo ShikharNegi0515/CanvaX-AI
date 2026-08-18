@@ -14,9 +14,10 @@ const QUICK_PROMPTS = [
 
 interface AIPanelProps {
   theme: 'light' | 'dark';
+  camera?: { x: number; y: number; zoom: number };
 }
 
-export function AIPanel({ theme }: AIPanelProps) {
+export function AIPanel({ theme, camera = { x: 0, y: 0, zoom: 1 } }: AIPanelProps) {
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
@@ -55,12 +56,59 @@ export function AIPanel({ theme }: AIPanelProps) {
         return;
       }
 
+      // Calculate bounds of generated elements
+      const minX = Math.min(...elements.map(el => el.x || 0));
+      const maxX = Math.max(...elements.map(el => (el.x || 0) + (el.width || 0)));
+      const minY = Math.min(...elements.map(el => el.y || 0));
+      const maxY = Math.max(...elements.map(el => (el.y || 0) + (el.height || 0)));
+      
+      const genCenterX = (minX + maxX) / 2;
+      const genCenterY = (minY + maxY) / 2;
+
+      const viewportCenterX = (window.innerWidth / 2 - camera.x) / camera.zoom;
+      const viewportCenterY = (window.innerHeight / 2 - camera.y) / camera.zoom;
+
+      const dx = viewportCenterX - genCenterX;
+      const dy = viewportCenterY - genCenterY;
+
       // Place generated diagram at a clean offset on canvas
+      const idMap = new Map<string, string>();
+      elements.forEach(el => {
+        if (el.id) idMap.set(el.id, crypto.randomUUID());
+      });
+
       const ids: string[] = [];
       elements.forEach(el => {
-        const id = crypto.randomUUID();
-        ids.push(id);
-        addElement({ ...el, id });
+        const newId = idMap.get(el.id) || crypto.randomUUID();
+        ids.push(newId);
+        
+        const updated = {
+          ...el,
+          id: newId,
+          x: (el.x || 0) + dx,
+          y: (el.y || 0) + dy
+        };
+
+        if (updated.parentId && idMap.has(updated.parentId)) {
+          updated.parentId = idMap.get(updated.parentId);
+        }
+        if (updated.groupId && idMap.has(updated.groupId)) {
+          updated.groupId = idMap.get(updated.groupId);
+        }
+        if (updated.startBinding?.elementId && idMap.has(updated.startBinding.elementId)) {
+          updated.startBinding = {
+            ...updated.startBinding,
+            elementId: idMap.get(updated.startBinding.elementId)!
+          };
+        }
+        if (updated.endBinding?.elementId && idMap.has(updated.endBinding.elementId)) {
+          updated.endBinding = {
+            ...updated.endBinding,
+            elementId: idMap.get(updated.endBinding.elementId)!
+          };
+        }
+
+        addElement(updated);
       });
 
       setSelectedIds(ids);

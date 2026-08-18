@@ -16,7 +16,9 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
-    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const existing = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
     if (existing) throw new ConflictException('Email already in use');
 
     const hashed = await bcrypt.hash(dto.password, 12);
@@ -30,8 +32,11 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
-    if (!user || !user.password) throw new UnauthorizedException('Invalid credentials');
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+    if (!user || !user.password)
+      throw new UnauthorizedException('Invalid credentials');
 
     const valid = await bcrypt.compare(dto.password, user.password);
     if (!valid) throw new UnauthorizedException('Invalid credentials');
@@ -41,19 +46,27 @@ export class AuthService {
     return { user: safeUser, access_token: token };
   }
 
-  async validateOAuthUser(details: { email: string; name?: string; provider: 'google' | 'github'; providerId: string; avatarUrl?: string }) {
+  async validateOAuthUser(details: {
+    email: string;
+    name?: string;
+    provider: 'google' | 'github';
+    providerId: string;
+    avatarUrl?: string;
+  }) {
     const { email, name, provider, providerId, avatarUrl } = details;
-    
+
     // Check if user exists by email
     let user = await this.prisma.user.findUnique({ where: { email } });
 
     if (user) {
       // Update existing user with OAuth provider ID if not linked
       const updateData: any = {};
-      if (provider === 'google' && !user.googleId) updateData.googleId = providerId;
-      if (provider === 'github' && !user.githubId) updateData.githubId = providerId;
+      if (provider === 'google' && !user.googleId)
+        updateData.googleId = providerId;
+      if (provider === 'github' && !user.githubId)
+        updateData.githubId = providerId;
       if (!user.avatarUrl && avatarUrl) updateData.avatarUrl = avatarUrl;
-      
+
       if (Object.keys(updateData).length > 0) {
         user = await this.prisma.user.update({
           where: { id: user.id },
@@ -81,7 +94,13 @@ export class AuthService {
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, name: true, createdAt: true, canvases: { select: { id: true, name: true, updatedAt: true } } },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        createdAt: true,
+        canvases: { select: { id: true, name: true, updatedAt: true } },
+      },
     });
     if (!user) throw new UnauthorizedException();
     return user;

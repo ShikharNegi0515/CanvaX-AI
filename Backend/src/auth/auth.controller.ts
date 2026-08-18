@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, Request, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Request,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
@@ -34,7 +42,9 @@ export class AuthController {
   googleAuthRedirect(@Request() req: any, @Res() res: any) {
     const { access_token, user } = req.user;
     // Redirect to frontend with token
-    res.redirect(`http://localhost:5173/auth/callback?token=${access_token}&user=${encodeURIComponent(JSON.stringify(user))}`);
+    res.redirect(
+      `http://localhost:5173/auth/callback?token=${access_token}&user=${encodeURIComponent(JSON.stringify(user))}`,
+    );
   }
 
   // GitHub OAuth
@@ -47,6 +57,8 @@ export class AuthController {
   githubAuthRedirect(@Request() req: any, @Res() res: any) {
     const { access_token, user } = req.user;
     // Redirect to frontend with token
-    res.redirect(`http://localhost:5173/auth/callback?token=${access_token}&user=${encodeURIComponent(JSON.stringify(user))}`);
+    res.redirect(
+      `http://localhost:5173/auth/callback?token=${access_token}&user=${encodeURIComponent(JSON.stringify(user))}`,
+    );
   }
 }

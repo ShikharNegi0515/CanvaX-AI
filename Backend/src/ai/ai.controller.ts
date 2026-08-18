@@ -25,13 +25,19 @@ export class AiController {
 
   @Post('transform')
   async transform(@Body() dto: TransformElementsDto) {
-    const elements = await this.aiService.transformElements(dto.elements, dto.prompt);
+    const elements = await this.aiService.transformElements(
+      dto.elements,
+      dto.prompt,
+    );
     return { elements };
   }
 
   @Post('chat')
   async chat(@Body() dto: ChatAssistantDto) {
-    const result = await this.aiService.chatWithAi(dto.messages, dto.canvasElements);
+    const result = await this.aiService.chatWithAi(
+      dto.messages,
+      dto.canvasElements,
+    );
     return result;
   }
 }

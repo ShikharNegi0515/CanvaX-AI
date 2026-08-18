@@ -30,12 +30,41 @@ export function TemplateModal({ isOpen, onClose, viewportCenter, onSelectTemplat
     const dx = viewportCenter.x - templateCenterX;
     const dy = viewportCenter.y - templateCenterY;
 
-    const translated = els.map(el => ({
-      ...el,
-      id: crypto.randomUUID(),
-      x: (el.x ?? 0) + dx,
-      y: (el.y ?? 0) + dy,
-    }));
+    const idMap = new Map<string, string>();
+    els.forEach(el => {
+      if (el.id) idMap.set(el.id, crypto.randomUUID());
+    });
+
+    const translated = els.map(el => {
+      const newId = idMap.get(el.id) || crypto.randomUUID();
+      const updated = {
+        ...el,
+        id: newId,
+        x: (el.x ?? 0) + dx,
+        y: (el.y ?? 0) + dy,
+      };
+
+      if (updated.parentId && idMap.has(updated.parentId)) {
+        updated.parentId = idMap.get(updated.parentId);
+      }
+      if (updated.groupId && idMap.has(updated.groupId)) {
+        updated.groupId = idMap.get(updated.groupId);
+      }
+      if (updated.startBinding?.elementId && idMap.has(updated.startBinding.elementId)) {
+        updated.startBinding = {
+          ...updated.startBinding,
+          elementId: idMap.get(updated.startBinding.elementId)!
+        };
+      }
+      if (updated.endBinding?.elementId && idMap.has(updated.endBinding.elementId)) {
+        updated.endBinding = {
+          ...updated.endBinding,
+          elementId: idMap.get(updated.endBinding.elementId)!
+        };
+      }
+      return updated;
+    });
+    
     onSelectTemplate(translated);
   };
 

@@ -1,4 +1,10 @@
-import { IsArray, IsOptional, IsString, IsEmail, IsEnum } from 'class-validator';
+import {
+  IsArray,
+  IsOptional,
+  IsString,
+  IsEmail,
+  IsEnum,
+} from 'class-validator';
 import { Role } from '@prisma/client';
 
 export class CreateCanvasDto {

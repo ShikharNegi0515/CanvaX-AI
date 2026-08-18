@@ -38,18 +38,28 @@ export class CollabGateway implements OnGatewayConnection, OnGatewayDisconnect {
   /** canvasId → Set of socketIds in that room */
   private rooms = new Map<string, Set<string>>();
   /** socketId → { userId, name, canvasId, color } */
-  private socketMeta = new Map<string, { userId: string; name: string; canvasId: string; color: string }>();
+  private socketMeta = new Map<
+    string,
+    { userId: string; name: string; canvasId: string; color: string }
+  >();
 
   constructor(private jwtService: JwtService) {}
 
   /** Assign a unique color per userId (deterministic from hash) */
   private userColor(userId: string): string {
     const colors = [
-      '#f59e0b', '#10b981', '#3b82f6', '#ec4899',
-      '#8b5cf6', '#06b6d4', '#ef4444', '#84cc16',
+      '#f59e0b',
+      '#10b981',
+      '#3b82f6',
+      '#ec4899',
+      '#8b5cf6',
+      '#06b6d4',
+      '#ef4444',
+      '#84cc16',
     ];
     let hash = 0;
-    for (let i = 0; i < userId.length; i++) hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+    for (let i = 0; i < userId.length; i++)
+      hash = userId.charCodeAt(i) + ((hash << 5) - hash);
     return colors[Math.abs(hash) % colors.length];
   }
 
@@ -58,7 +68,7 @@ export class CollabGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const token =
         (socket.handshake.auth?.token as string) ||
         (socket.handshake.headers.authorization?.replace('Bearer ', '') ?? '');
-      const payload = this.jwtService.verify(token) as { sub: string; email: string };
+      const payload = this.jwtService.verify(token);
       socket.data.userId = payload.sub;
       // Derive a display name from the email prefix (e.g. john.doe@example.com → john.doe)
       socket.data.name = payload.email.split('@')[0];
@@ -104,7 +114,7 @@ export class CollabGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // Tell the joiner who else is online
     const others: { userId: string; name: string; color: string }[] = [];
-    this.rooms.get(canvasId)!.forEach(sid => {
+    this.rooms.get(canvasId)!.forEach((sid) => {
       if (sid !== socket.id) {
         const m = this.socketMeta.get(sid);
         if (m) others.push({ userId: m.userId, name: m.name, color: m.color });

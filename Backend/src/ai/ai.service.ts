@@ -1,10 +1,22 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 
 export interface DiagramElement {
   id: string;
-  type: 'rectangle' | 'ellipse' | 'diamond' | 'text' | 'arrow' | 'line' | 'frame' | 'sticky';
+  type:
+    | 'rectangle'
+    | 'ellipse'
+    | 'diamond'
+    | 'text'
+    | 'arrow'
+    | 'line'
+    | 'frame'
+    | 'sticky';
   x: number;
   y: number;
   width?: number;
@@ -68,7 +80,9 @@ export class AiService {
 
   constructor() {
     if (!process.env.GOOGLE_AI_API_KEY) {
-      this.logger.warn('GOOGLE_AI_API_KEY not set — AI features will be unavailable');
+      this.logger.warn(
+        'GOOGLE_AI_API_KEY not set — AI features will be unavailable',
+      );
     }
   }
 
@@ -105,7 +119,10 @@ export class AiService {
       ]);
 
       const parsed = this.cleanJsonResponse(response.content as string);
-      if (!Array.isArray(parsed)) throw new InternalServerErrorException('AI response was not a JSON array.');
+      if (!Array.isArray(parsed))
+        throw new InternalServerErrorException(
+          'AI response was not a JSON array.',
+        );
 
       return parsed.map((el, i) => ({
         ...el,
@@ -127,7 +144,9 @@ Preserve all text, shape types, IDs, colors, and arrows, but fix their x, y, wid
 Return ONLY the updated valid JSON array of elements.`;
 
       const response = await this.getModel().invoke([
-        new SystemMessage('You are an expert UI/UX layout engine that aligns diagram elements into clean grids.'),
+        new SystemMessage(
+          'You are an expert UI/UX layout engine that aligns diagram elements into clean grids.',
+        ),
         new HumanMessage(prompt),
       ]);
 
@@ -140,7 +159,10 @@ Return ONLY the updated valid JSON array of elements.`;
     }
   }
 
-  async transformElements(elements: DiagramElement[], instruction: string): Promise<DiagramElement[]> {
+  async transformElements(
+    elements: DiagramElement[],
+    instruction: string,
+  ): Promise<DiagramElement[]> {
     try {
       const prompt = `Given these selected canvas elements: ${JSON.stringify(elements)}.
 User instruction: "${instruction}".
@@ -161,7 +183,9 @@ Return ONLY a valid JSON array of canvas elements following the CanvaX AI schema
       }));
     } catch (err: any) {
       this.logger.error('AI transform error', err?.message);
-      throw new InternalServerErrorException('Failed to transform selected elements.');
+      throw new InternalServerErrorException(
+        'Failed to transform selected elements.',
+      );
     }
   }
 
@@ -178,7 +202,9 @@ ACTION_JSON:[{"type":"sticky","text":"Note content","x":300,"y":300,"width":160,
       const langChainMsgs = [
         new SystemMessage(systemMsg),
         ...messages.map((m) =>
-          m.role === 'user' ? new HumanMessage(m.content) : new SystemMessage(m.content),
+          m.role === 'user'
+            ? new HumanMessage(m.content)
+            : new SystemMessage(m.content),
         ),
       ];
 
@@ -208,7 +234,9 @@ ACTION_JSON:[{"type":"sticky","text":"Note content","x":300,"y":300,"width":160,
       return { text, newElements };
     } catch (err: any) {
       this.logger.error('AI chat error', err?.message);
-      return { text: "I'm sorry, I ran into an issue connecting to AI services." };
+      return {
+        text: "I'm sorry, I ran into an issue connecting to AI services.",
+      };
     }
   }
 }
