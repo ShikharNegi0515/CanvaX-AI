@@ -302,11 +302,11 @@ function renderText(ctx: CanvasRenderingContext2D, el: CanvasElement) {
   if (ew < 0) { ex += ew; ew = -ew; }
   if (eh < 0) { ey += eh; eh = -eh; }
 
-  let startY = ey + padding;
+  let startY = ey + padding + (fontSize * 1.5 - fontSize) / 2;
   
   if (isShape) {
     const totalHeight = wrappedLines.length * lineHeight;
-    startY = ey + (eh - totalHeight) / 2;
+    startY = ey + (eh - totalHeight) / 2 + (fontSize * 1.5 - fontSize) / 2;
   }
   
   ctx.textBaseline = 'top';

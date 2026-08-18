@@ -1007,8 +1007,14 @@ export function InfiniteCanvas() {
 
 
     if (tool === 'text') {
-      // Start dragging to define the text box — don't create element yet
-      textBoxStart.current = { x: ptr.x, y: ptr.y };
+      const hit = getHitElement(ptr);
+      if (hit && (hit.type === 'text' || hit.type === 'rectangle' || hit.type === 'ellipse' || hit.type === 'diamond')) {
+        setEditingTextId(hit.id);
+        setTool('select');
+        setSelectedIds([hit.id]);
+        return;
+      }
+      textBoxStart.current = ptr;
       setTextBoxDraft({ x: ptr.x, y: ptr.y, w: 0, h: 0 });
       return;
     }
@@ -1901,7 +1907,7 @@ export function InfiniteCanvas() {
               outline: 'none',
               resize: 'none',
               overflow: 'hidden',
-              padding: '4px',
+              padding: `${4 * camera.zoom}px`,
               margin: 0,
               lineHeight: 1.5,
               whiteSpace: (editingElement.type === 'text' && editingElement.autoSize) ? 'pre' : 'pre-wrap',
