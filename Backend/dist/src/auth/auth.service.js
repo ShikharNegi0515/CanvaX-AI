@@ -55,7 +55,9 @@ let AuthService = class AuthService {
         this.jwtService = jwtService;
     }
     async register(dto) {
-        const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+        const existing = await this.prisma.user.findUnique({
+            where: { email: dto.email },
+        });
         if (existing)
             throw new common_1.ConflictException('Email already in use');
         const hashed = await bcrypt.hash(dto.password, 12);
@@ -67,7 +69,9 @@ let AuthService = class AuthService {
         return { user, access_token: token };
     }
     async login(dto) {
-        const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+        const user = await this.prisma.user.findUnique({
+            where: { email: dto.email },
+        });
         if (!user || !user.password)
             throw new common_1.UnauthorizedException('Invalid credentials');
         const valid = await bcrypt.compare(dto.password, user.password);
@@ -113,7 +117,13 @@ let AuthService = class AuthService {
     async getProfile(userId) {
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
-            select: { id: true, email: true, name: true, createdAt: true, canvases: { select: { id: true, name: true, updatedAt: true } } },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                createdAt: true,
+                canvases: { select: { id: true, name: true, updatedAt: true } },
+            },
         });
         if (!user)
             throw new common_1.UnauthorizedException();

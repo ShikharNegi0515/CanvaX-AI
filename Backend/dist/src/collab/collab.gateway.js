@@ -29,8 +29,14 @@ let CollabGateway = CollabGateway_1 = class CollabGateway {
     }
     userColor(userId) {
         const colors = [
-            '#f59e0b', '#10b981', '#3b82f6', '#ec4899',
-            '#8b5cf6', '#06b6d4', '#ef4444', '#84cc16',
+            '#f59e0b',
+            '#10b981',
+            '#3b82f6',
+            '#ec4899',
+            '#8b5cf6',
+            '#06b6d4',
+            '#ef4444',
+            '#84cc16',
         ];
         let hash = 0;
         for (let i = 0; i < userId.length; i++)
@@ -77,7 +83,7 @@ let CollabGateway = CollabGateway_1 = class CollabGateway {
         this.rooms.get(canvasId).add(socket.id);
         this.socketMeta.set(socket.id, { userId, name, canvasId, color });
         const others = [];
-        this.rooms.get(canvasId).forEach(sid => {
+        this.rooms.get(canvasId).forEach((sid) => {
             if (sid !== socket.id) {
                 const m = this.socketMeta.get(sid);
                 if (m)

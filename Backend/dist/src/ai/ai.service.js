@@ -154,7 +154,9 @@ Answer user questions helpfully. If the user asks to add or modify elements, inc
 ACTION_JSON:[{"type":"sticky","text":"Note content","x":300,"y":300,"width":160,"height":160,"backgroundColor":"#fef08a"}]`;
             const langChainMsgs = [
                 new messages_1.SystemMessage(systemMsg),
-                ...messages.map((m) => m.role === 'user' ? new messages_1.HumanMessage(m.content) : new messages_1.SystemMessage(m.content)),
+                ...messages.map((m) => m.role === 'user'
+                    ? new messages_1.HumanMessage(m.content)
+                    : new messages_1.SystemMessage(m.content)),
             ];
             const response = await this.getModel().invoke(langChainMsgs);
             const rawText = response.content;
@@ -180,7 +182,9 @@ ACTION_JSON:[{"type":"sticky","text":"Note content","x":300,"y":300,"width":160,
         }
         catch (err) {
             this.logger.error('AI chat error', err?.message);
-            return { text: "I'm sorry, I ran into an issue connecting to AI services." };
+            return {
+                text: "I'm sorry, I ran into an issue connecting to AI services.",
+            };
         }
     }
 };
