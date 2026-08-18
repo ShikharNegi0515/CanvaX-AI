@@ -59,6 +59,9 @@ export function InfiniteCanvas() {
   const [isPanning, setIsPanning] = useState(false);
   const [renderTrigger, setRenderTrigger] = useState(0);
 
+  // Show size labels toggle
+  const [showSizes, setShowSizes] = useState(false);
+
   // Text editing state
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [snapLines, setSnapLines] = useState<{ x?: number, y?: number }[]>([]);
@@ -1628,9 +1631,54 @@ export function InfiniteCanvas() {
           onInsertImage={openImagePicker}
           onToggleTemplates={() => setIsTemplateModalOpen(true)}
           onToggleCopilot={() => setIsCopilotOpen(true)}
-
+          showSizes={showSizes}
+          onToggleShowSizes={() => setShowSizes(s => !s)}
         />
       )}
+
+      {/* ── Size dimension labels (shown when showSizes is on) ── */}
+      {showSizes && selectedIds.map(id => {
+        const el = elements.find(e => e.id === id);
+        if (!el || el.type === 'line' || el.type === 'arrow' || el.type === 'draw') return null;
+
+        let ex = el.x ?? 0;
+        let ey = el.y ?? 0;
+        let ew = el.width ?? 0;
+        let eh = el.height ?? 0;
+        if (ew < 0) { ex += ew; ew = -ew; }
+        if (eh < 0) { ey += eh; eh = -eh; }
+
+        // Convert canvas coords → screen coords
+        const screenX = ex * camera.zoom + camera.x;
+        const screenY = (ey + eh) * camera.zoom + camera.y;
+
+        return (
+          <div
+            key={id}
+            style={{
+              position: 'absolute',
+              left: screenX,
+              top: screenY + 6,
+              zIndex: 500,
+              pointerEvents: 'none',
+              background: 'rgba(30, 30, 46, 0.88)',
+              backdropFilter: 'blur(4px)',
+              color: '#ffffff',
+              fontSize: 11,
+              fontFamily: 'Inter, monospace',
+              fontWeight: 600,
+              padding: '3px 7px',
+              borderRadius: 5,
+              letterSpacing: 0.3,
+              whiteSpace: 'nowrap',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+              lineHeight: 1.6,
+            }}
+          >
+            w: {Math.round(ew)} h: {Math.round(eh)}
+          </div>
+        );
+      })}
 
       {(selectedIds.length > 0 || tool !== 'select' && tool !== 'hand') && (
         <PropertiesPanel

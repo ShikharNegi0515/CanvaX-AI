@@ -57,8 +57,8 @@ export function CommentsLayer({
   return (
     <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 95 }}>
       {commentElements.map((el) => {
-        const screenX = el.x * zoom + pan.x;
-        const screenY = el.y * zoom + pan.y;
+        const screenX = (el.x ?? 0) * zoom + pan.x;
+        const screenY = (el.y ?? 0) * zoom + pan.y;
         const isOpen = activeCommentId === el.id;
         const comment = el.comment!;
 

@@ -56,12 +56,24 @@ export function AIPanel({ theme, camera = { x: 0, y: 0, zoom: 1 } }: AIPanelProp
         return;
       }
 
-      // Calculate bounds of generated elements
-      const minX = Math.min(...elements.map(el => el.x || 0));
-      const maxX = Math.max(...elements.map(el => (el.x || 0) + (el.width || 0)));
-      const minY = Math.min(...elements.map(el => el.y || 0));
-      const maxY = Math.max(...elements.map(el => (el.y || 0) + (el.height || 0)));
-      
+      // Calculate bounds of generated elements (including arrow points)
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      elements.forEach(el => {
+        const x = el.x ?? 0;
+        const y = el.y ?? 0;
+        if ((el.type === 'arrow' || el.type === 'line') && el.points && el.points.length >= 2) {
+          for (let i = 0; i < el.points.length; i += 2) {
+            const px = x + (el.points[i] ?? 0);
+            const py = y + (el.points[i + 1] ?? 0);
+            minX = Math.min(minX, px); maxX = Math.max(maxX, px);
+            minY = Math.min(minY, py); maxY = Math.max(maxY, py);
+          }
+        } else {
+          minX = Math.min(minX, x); maxX = Math.max(maxX, x + (el.width ?? 0));
+          minY = Math.min(minY, y); maxY = Math.max(maxY, y + (el.height ?? 0));
+        }
+      });
+
       const genCenterX = (minX + maxX) / 2;
       const genCenterY = (minY + maxY) / 2;
 
@@ -81,7 +93,7 @@ export function AIPanel({ theme, camera = { x: 0, y: 0, zoom: 1 } }: AIPanelProp
       elements.forEach(el => {
         const newId = idMap.get(el.id) || crypto.randomUUID();
         ids.push(newId);
-        
+
         const updated = {
           ...el,
           id: newId,

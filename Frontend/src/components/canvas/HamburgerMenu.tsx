@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Menu, Home, Moon, Sun, LogIn, LogOut, Plus, Download, Image } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +16,18 @@ export function HamburgerMenu({ theme, onThemeToggle, onClear, onExportPNG, onEx
   const menuRef = useRef<HTMLDivElement>(null);
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+
+  // Close on click outside
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [isOpen]);
 
   const isDark = theme === 'dark';
   const bg = isDark ? '#232329' : '#ffffff';
@@ -41,7 +53,7 @@ export function HamburgerMenu({ theme, onThemeToggle, onClear, onExportPNG, onEx
   );
 
   return (
-    <div style={{ position: 'fixed', top: 12, left: 16, zIndex: 300 }}>
+    <div ref={menuRef} style={{ position: 'fixed', top: 12, left: 16, zIndex: 300 }}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         style={{
@@ -56,7 +68,6 @@ export function HamburgerMenu({ theme, onThemeToggle, onClear, onExportPNG, onEx
 
       {isOpen && (
         <div
-          ref={menuRef}
           style={{
             position: 'absolute', top: 48, left: 0, width: 260,
             background: bg, border: `1px solid ${border}`, borderRadius: 12,

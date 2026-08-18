@@ -2,7 +2,7 @@ import { type Tool } from '../../store/useCanvasStore';
 import {
   MousePointer2, Hand, Square, Diamond, Circle, ArrowRight,
   Minus, Pencil, Type, Image, Eraser, FrameIcon, Undo2, Redo2,
-  Sparkles, MoreHorizontal, PaintBucket, Lasso, StickyNote, MessageSquare, BrainCircuit, Bot, LayoutTemplate
+  Sparkles, MoreHorizontal, PaintBucket, Lasso, StickyNote, MessageSquare, BrainCircuit, Bot, LayoutTemplate, Ruler
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
@@ -17,7 +17,8 @@ interface ToolbarProps {
   onInsertImage: () => void;
   onToggleTemplates?: () => void;
   onToggleCopilot?: () => void;
-
+  showSizes?: boolean;
+  onToggleShowSizes?: () => void;
 }
 
 const TOOL_GROUPS: { id: Tool; icon: React.ReactNode; label: string; key: string }[][] = [
@@ -61,7 +62,8 @@ export function Toolbar({
   onInsertImage,
   onToggleTemplates,
   onToggleCopilot,
-
+  showSizes,
+  onToggleShowSizes,
 }: ToolbarProps) {
   const isDark = theme === 'dark';
   const bg = isDark ? '#232329' : '#ffffff';
@@ -202,8 +204,19 @@ export function Toolbar({
         </button>
       )}
 
-
-
+      {onToggleShowSizes && (
+        <button
+          title={showSizes ? 'Hide element sizes' : 'Show element sizes'}
+          onClick={onToggleShowSizes}
+          style={{
+            ...btnBase,
+            background: showSizes ? activeBg : 'transparent',
+            color: showSizes ? activeColor : text,
+          }}
+        >
+          <Ruler size={18} />
+        </button>
+      )}
       {divider}
 
       <button title="Undo (Ctrl+Z)" disabled={!canUndo} onClick={onUndo}
