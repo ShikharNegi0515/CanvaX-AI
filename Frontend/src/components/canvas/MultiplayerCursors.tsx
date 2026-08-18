@@ -43,7 +43,6 @@ export function MultiplayerCursors({ cursors, zoom, pan }: MultiplayerCursorsPro
               display: 'flex',
               alignItems: 'center',
               gap: 4,
-              transform: 'translate(-50%, -50%)',
             }}
           >
             {/* Custom SVG cursor arrow */}

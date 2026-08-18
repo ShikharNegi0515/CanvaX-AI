@@ -18,6 +18,7 @@ const passport_1 = require("@nestjs/passport");
 const auth_service_1 = require("./auth.service");
 const auth_dto_1 = require("./dto/auth.dto");
 const jwt_auth_guard_1 = require("./jwt-auth.guard");
+const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:5173';
 let AuthController = class AuthController {
     authService;
     constructor(authService) {
@@ -35,12 +36,12 @@ let AuthController = class AuthController {
     async googleAuth() { }
     googleAuthRedirect(req, res) {
         const { access_token, user } = req.user;
-        res.redirect(`http://localhost:5173/auth/callback?token=${access_token}&user=${encodeURIComponent(JSON.stringify(user))}`);
+        res.redirect(`${FRONTEND_URL}/auth/callback?token=${access_token}&user=${encodeURIComponent(JSON.stringify(user))}`);
     }
     async githubAuth() { }
     githubAuthRedirect(req, res) {
         const { access_token, user } = req.user;
-        res.redirect(`http://localhost:5173/auth/callback?token=${access_token}&user=${encodeURIComponent(JSON.stringify(user))}`);
+        res.redirect(`${FRONTEND_URL}/auth/callback?token=${access_token}&user=${encodeURIComponent(JSON.stringify(user))}`);
     }
 };
 exports.AuthController = AuthController;

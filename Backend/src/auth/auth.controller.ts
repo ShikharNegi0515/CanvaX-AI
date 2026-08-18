@@ -12,6 +12,8 @@ import { AuthService } from './auth.service';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
+const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:5173';
+
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
@@ -41,9 +43,8 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   googleAuthRedirect(@Request() req: any, @Res() res: any) {
     const { access_token, user } = req.user;
-    // Redirect to frontend with token
     res.redirect(
-      `http://localhost:5173/auth/callback?token=${access_token}&user=${encodeURIComponent(JSON.stringify(user))}`,
+      `${FRONTEND_URL}/auth/callback?token=${access_token}&user=${encodeURIComponent(JSON.stringify(user))}`,
     );
   }
 
@@ -56,9 +57,8 @@ export class AuthController {
   @UseGuards(AuthGuard('github'))
   githubAuthRedirect(@Request() req: any, @Res() res: any) {
     const { access_token, user } = req.user;
-    // Redirect to frontend with token
     res.redirect(
-      `http://localhost:5173/auth/callback?token=${access_token}&user=${encodeURIComponent(JSON.stringify(user))}`,
+      `${FRONTEND_URL}/auth/callback?token=${access_token}&user=${encodeURIComponent(JSON.stringify(user))}`,
     );
   }
 }
