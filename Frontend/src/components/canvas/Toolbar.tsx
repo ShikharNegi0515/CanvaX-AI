@@ -22,32 +22,32 @@ interface ToolbarProps {
 
 const TOOL_GROUPS: { id: Tool; icon: React.ReactNode; label: string; key: string }[][] = [
   [
-    { id: 'select',    icon: <MousePointer2 size={18}/>, label: 'Select',    key: 'V' },
-    { id: 'hand',      icon: <Hand size={18}/>,          label: 'Hand',      key: 'H' },
+    { id: 'select', icon: <MousePointer2 size={18} />, label: 'Select', key: 'V' },
+    { id: 'hand', icon: <Hand size={18} />, label: 'Hand', key: 'H' },
   ],
   [
-    { id: 'rectangle', icon: <Square size={18}/>,        label: 'Rectangle', key: 'R' },
-    { id: 'diamond',   icon: <Diamond size={18}/>,       label: 'Diamond',   key: 'D' },
-    { id: 'ellipse',   icon: <Circle size={18}/>,        label: 'Ellipse',   key: 'E' },
-    { id: 'arrow',     icon: <ArrowRight size={18}/>,    label: 'Arrow',     key: 'A' },
-    { id: 'line',      icon: <Minus size={18}/>,         label: 'Line',      key: 'L' },
-    { id: 'draw',      icon: <Pencil size={18}/>,        label: 'Draw',      key: 'P' },
+    { id: 'rectangle', icon: <Square size={18} />, label: 'Rectangle', key: 'R' },
+    { id: 'diamond', icon: <Diamond size={18} />, label: 'Diamond', key: 'D' },
+    { id: 'ellipse', icon: <Circle size={18} />, label: 'Ellipse', key: 'E' },
+    { id: 'arrow', icon: <ArrowRight size={18} />, label: 'Arrow', key: 'A' },
+    { id: 'line', icon: <Minus size={18} />, label: 'Line', key: 'L' },
+    { id: 'draw', icon: <Pencil size={18} />, label: 'Draw', key: 'P' },
   ],
   [
-    { id: 'text',      icon: <Type size={18}/>,          label: 'Text',      key: 'T' },
-    { id: 'sticky',    icon: <StickyNote size={18}/>,    label: 'Sticky Note',key: 'N' },
-    { id: 'comment',   icon: <MessageSquare size={18}/>, label: 'Comment Pin',key: 'C' },
-    { id: 'image',     icon: <Image size={18}/>,         label: 'Image',     key: 'I' },
-    { id: 'eraser',    icon: <Eraser size={18}/>,        label: 'Eraser',    key: 'X' },
+    { id: 'text', icon: <Type size={18} />, label: 'Text', key: 'T' },
+    { id: 'sticky', icon: <StickyNote size={18} />, label: 'Sticky Note', key: 'N' },
+    { id: 'comment', icon: <MessageSquare size={18} />, label: 'Comment Pin', key: 'C' },
+    { id: 'image', icon: <Image size={18} />, label: 'Image', key: 'I' },
+    { id: 'eraser', icon: <Eraser size={18} />, label: 'Eraser', key: 'X' },
   ],
 ];
 
 const MORE_TOOLS: { id: Tool; icon: React.ReactNode; label: string; key: string }[] = [
-  { id: 'mindmap',   icon: <BrainCircuit size={18}/>,  label: 'Mind Map',  key: 'M' },
-  { id: 'frame',     icon: <FrameIcon size={18}/>,     label: 'Frame',     key: 'F' },
-  { id: 'laser',     icon: <Sparkles size={18}/>,      label: 'Laser',     key: 'K' },
-  { id: 'bucket',    icon: <PaintBucket size={18}/>,   label: 'Bucket Fill',key: 'B' },
-  { id: 'lasso',     icon: <Lasso size={18}/>,         label: 'Lasso',     key: 'O' },
+  { id: 'mindmap', icon: <BrainCircuit size={18} />, label: 'Mind Map', key: 'M' },
+  { id: 'frame', icon: <FrameIcon size={18} />, label: 'Frame', key: 'F' },
+  { id: 'laser', icon: <Sparkles size={18} />, label: 'Laser', key: 'K' },
+  { id: 'bucket', icon: <PaintBucket size={18} />, label: 'Bucket Fill', key: 'B' },
+  { id: 'lasso', icon: <Lasso size={18} />, label: 'Lasso', key: 'O' },
 ];
 
 export function Toolbar({
@@ -64,9 +64,9 @@ export function Toolbar({
 
 }: ToolbarProps) {
   const isDark = theme === 'dark';
-  const bg     = isDark ? '#232329' : '#ffffff';
+  const bg = isDark ? '#232329' : '#ffffff';
   const border = isDark ? '#3a3a44' : '#e2e2e2';
-  const text   = isDark ? '#c5c5d2' : '#1e1e2e';
+  const text = isDark ? '#c5c5d2' : '#1e1e2e';
   const activeBg = isDark ? '#3d3d4a' : '#ebf4ff';
   const activeColor = '#6965db';
 

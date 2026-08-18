@@ -689,12 +689,12 @@ export function InfiniteCanvas() {
   }, [elements, camera.zoom]);
 
   // Helper: distance from point to line segment
-  const distToSeg = (p: {x:number,y:number}, a: {x:number,y:number}, b: {x:number,y:number}) => {
-    const l2 = (a.x-b.x)**2 + (a.y-b.y)**2;
-    if (l2 === 0) return Math.hypot(p.x-a.x, p.y-a.y);
-    let t = ((p.x-a.x)*(b.x-a.x)+(p.y-a.y)*(b.y-a.y))/l2;
+  const distToSeg = (p: { x: number, y: number }, a: { x: number, y: number }, b: { x: number, y: number }) => {
+    const l2 = (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
+    if (l2 === 0) return Math.hypot(p.x - a.x, p.y - a.y);
+    let t = ((p.x - a.x) * (b.x - a.x) + (p.y - a.y) * (b.y - a.y)) / l2;
     t = Math.max(0, Math.min(1, t));
-    return Math.hypot(p.x-(a.x+t*(b.x-a.x)), p.y-(a.y+t*(b.y-a.y)));
+    return Math.hypot(p.x - (a.x + t * (b.x - a.x)), p.y - (a.y + t * (b.y - a.y)));
   };
 
   // Eraser-specific hit: only the stroke/border of each shape, not interior fills
@@ -718,8 +718,8 @@ export function InfiniteCanvas() {
         const ox = el.x ?? 0, oy = el.y ?? 0;
         for (let i = 0; i < pts.length - 2; i += 2) {
           if (distToSeg(ptr,
-            { x: ox + pts[i], y: oy + pts[i+1] },
-            { x: ox + pts[i+2], y: oy + pts[i+3] }
+            { x: ox + pts[i], y: oy + pts[i + 1] },
+            { x: ox + pts[i + 2], y: oy + pts[i + 3] }
           ) <= r) return true;
         }
         return false;
@@ -735,26 +735,26 @@ export function InfiniteCanvas() {
         // Near the ellipse circumference: between inner and outer ellipse
         const rxO = rx + r, ryO = ry + r;
         const rxI = Math.max(1, rx - r), ryI = Math.max(1, ry - r);
-        const normO = (ptr.x-cx)**2/rxO**2 + (ptr.y-cy)**2/ryO**2;
-        const normI = (ptr.x-cx)**2/rxI**2 + (ptr.y-cy)**2/ryI**2;
+        const normO = (ptr.x - cx) ** 2 / rxO ** 2 + (ptr.y - cy) ** 2 / ryO ** 2;
+        const normI = (ptr.x - cx) ** 2 / rxI ** 2 + (ptr.y - cy) ** 2 / ryI ** 2;
         return normO <= 1 && normI >= 1;
       }
 
       if (el.type === 'diamond') {
-        const top    = { x: ex + ew/2, y: ey };
-        const right  = { x: ex + ew,   y: ey + eh/2 };
-        const bottom = { x: ex + ew/2, y: ey + eh };
-        const left   = { x: ex,        y: ey + eh/2 };
-        return [[top,right],[right,bottom],[bottom,left],[left,top]].some(
+        const top = { x: ex + ew / 2, y: ey };
+        const right = { x: ex + ew, y: ey + eh / 2 };
+        const bottom = { x: ex + ew / 2, y: ey + eh };
+        const left = { x: ex, y: ey + eh / 2 };
+        return [[top, right], [right, bottom], [bottom, left], [left, top]].some(
           ([a, b]) => distToSeg(ptr, a, b) <= r
         );
       }
 
       // Rectangle, frame → near any of the 4 edges
       if (el.type === 'rectangle' || el.type === 'frame') {
-        const tl = {x:ex,y:ey}, tr = {x:ex+ew,y:ey};
-        const bl = {x:ex,y:ey+eh}, br = {x:ex+ew,y:ey+eh};
-        return [[tl,tr],[tr,br],[br,bl],[bl,tl]].some(
+        const tl = { x: ex, y: ey }, tr = { x: ex + ew, y: ey };
+        const bl = { x: ex, y: ey + eh }, br = { x: ex + ew, y: ey + eh };
+        return [[tl, tr], [tr, br], [br, bl], [bl, tl]].some(
           ([a, b]) => distToSeg(ptr, a, b) <= r
         );
       }
@@ -1434,7 +1434,7 @@ export function InfiniteCanvas() {
     const init = async () => {
       // Prioritize the ID from the URL. If it's a legacy /canvas route, fallback to localStorage
       let targetId = routeId || localStorage.getItem('canvax_last_canvas_id');
-      
+
       try {
         if (targetId) {
           const canvas = await canvasApi.get(targetId);
@@ -1764,13 +1764,13 @@ export function InfiniteCanvas() {
           touchAction: 'none',
           cursor:
             userRole === 'VIEWER' ? (tool === 'hand' || isPanning ? 'grab' : 'default') :
-            tool === 'hand' || isPanning ? 'grab' :
-              tool === 'laser' ? 'crosshair' :
-                tool === 'eraser' ? 'none' :
-                  tool === 'bucket' ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 32 32'%3E%3Cpath d='M12 9 L23 20 L12 31 L1 20 Z' fill='none' stroke='%231e1e1e' stroke-width='2.2' stroke-linejoin='miter'/%3E%3Cline x1='2' y1='12' x2='16' y2='12' stroke='%231e1e1e' stroke-width='2.2' stroke-linecap='square'/%3E%3Cpath d='M5 12 L5 8 Q5 5 8 5 Q11 5 11 8 L11 12' fill='none' stroke='%231e1e1e' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Crect x='13' y='8' width='4' height='5' fill='none' stroke='%231e1e1e' stroke-width='2'/%3E%3Cpath d='M28 24 C28 29 26 32 24 32 C22 32 20 29 20 24 C20 20 24 16 24 16 C24 16 28 20 28 24 Z' fill='none' stroke='%231e1e1e' stroke-width='2'/%3E%3C/svg%3E") 3 15, crosshair` :
-                    tool === 'text' ? 'text' :
-                      tool === 'select' ? 'default' :
-                        'crosshair',
+              tool === 'hand' || isPanning ? 'grab' :
+                tool === 'laser' ? 'crosshair' :
+                  tool === 'eraser' ? 'none' :
+                    tool === 'bucket' ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 32 32'%3E%3Cpath d='M12 9 L23 20 L12 31 L1 20 Z' fill='none' stroke='%231e1e1e' stroke-width='2.2' stroke-linejoin='miter'/%3E%3Cline x1='2' y1='12' x2='16' y2='12' stroke='%231e1e1e' stroke-width='2.2' stroke-linecap='square'/%3E%3Cpath d='M5 12 L5 8 Q5 5 8 5 Q11 5 11 8 L11 12' fill='none' stroke='%231e1e1e' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Crect x='13' y='8' width='4' height='5' fill='none' stroke='%231e1e1e' stroke-width='2'/%3E%3Cpath d='M28 24 C28 29 26 32 24 32 C22 32 20 29 20 24 C20 20 24 16 24 16 C24 16 28 20 28 24 Z' fill='none' stroke='%231e1e1e' stroke-width='2'/%3E%3C/svg%3E") 3 15, crosshair` :
+                      tool === 'text' ? 'text' :
+                        tool === 'select' ? 'default' :
+                          'crosshair',
         }}
       />
 
@@ -1827,54 +1827,41 @@ export function InfiniteCanvas() {
               justifyContent: 'center',
             }}
           >
-          <textarea
-            ref={textInputRef}
-            value={editingElement.text ?? ''}
-            onChange={e => {
-              const ta = e.target;
-              if (editingElement.type !== 'text') {
-                updateElement(editingTextId, { text: e.target.value });
-                return;
-              }
-
-              ta.style.height = 'auto';
-              ta.style.height = ta.scrollHeight + 'px';
-              if (editingElement.autoSize) {
-                ta.style.width = 'auto';
-                ta.style.width = ta.scrollWidth + 'px';
-              }
-
-              const dims = measureTextDimensions(e.target.value, editingElement);
-
-              updateElement(editingTextId, {
-                text: e.target.value,
-                height: dims.height,
-                ...(editingElement.autoSize ? { width: dims.width } : {})
-              });
-            }}
-            onMouseUp={() => {
-              if (textInputRef.current && editingElement.type === 'text') {
-                const cam = cameraRef.current;
-                const newWidth = textInputRef.current.offsetWidth / cam.zoom;
-                if (Math.abs(newWidth - Math.abs(editingElement.width ?? 0)) > 5) {
-                  updateElement(editingTextId, { width: newWidth, autoSize: false });
+            <textarea
+              ref={textInputRef}
+              value={editingElement.text ?? ''}
+              onChange={e => {
+                const ta = e.target;
+                if (editingElement.type !== 'text') {
+                  updateElement(editingTextId, { text: e.target.value });
+                  return;
                 }
-              }
-            }}
-            onBlur={() => {
-              if (textInputRef.current && editingElement.type === 'text') {
-                const dims = measureTextDimensions(textInputRef.current.value, editingElement);
+
+                ta.style.height = 'auto';
+                ta.style.height = ta.scrollHeight + 'px';
+                if (editingElement.autoSize) {
+                  ta.style.width = 'auto';
+                  ta.style.width = ta.scrollWidth + 'px';
+                }
+
+                const dims = measureTextDimensions(e.target.value, editingElement);
+
                 updateElement(editingTextId, {
+                  text: e.target.value,
                   height: dims.height,
+                  ...(editingElement.autoSize ? { width: dims.width } : {})
                 });
-              }
-              setEditingTextId(null);
-              setTool('select');
-              commit();
-            }}
-            onKeyDown={e => {
-              e.stopPropagation();
-              if (e.key === 'Escape') {
+              }}
+              onMouseUp={() => {
+                if (textInputRef.current && editingElement.type === 'text') {
+                  const cam = cameraRef.current;
+                  const newWidth = textInputRef.current.offsetWidth / cam.zoom;
+                  if (Math.abs(newWidth - Math.abs(editingElement.width ?? 0)) > 5) {
+                    updateElement(editingTextId, { width: newWidth, autoSize: false });
+                  }
+                }
+              }}
+              onBlur={() => {
                 if (textInputRef.current && editingElement.type === 'text') {
                   const dims = measureTextDimensions(textInputRef.current.value, editingElement);
                   updateElement(editingTextId, {
@@ -1884,40 +1871,53 @@ export function InfiniteCanvas() {
                 setEditingTextId(null);
                 setTool('select');
                 commit();
-              }
-            }}
-            style={{
-              display: 'block',
-              width: editingElement.type !== 'text' ? '100%' : (editingElement.autoSize ? 'auto' : Math.abs(editingElement.width ?? 200) * camera.zoom),
-              maxWidth: '80vw',
-              minHeight: (editingElement.fontSize ?? 20) * camera.zoom * 1.5,
-              fontSize: (editingElement.fontSize ?? 20) * camera.zoom,
-              fontFamily: editingElement.fontFamily === 'hand' ? 'Caveat, cursive' :
-                editingElement.fontFamily === 'code' ? '"Courier New", monospace' :
-                  editingElement.fontFamily === 'serif' ? 'Georgia, serif' :
-                    editingElement.fontFamily === 'comic' ? '"Comic Sans MS", cursive' :
-                      editingElement.fontFamily === 'impact' ? 'Impact, sans-serif' :
-                        'Inter, sans-serif',
-              // For shapes: text is rendered by canvas, so make textarea text invisible
-              color: editingElement.type === 'text' ? (editingElement.strokeColor ?? '#1e1e1e') : 'transparent',
-              caretColor: editingElement.strokeColor ?? '#1e1e1e',
-              background: 'transparent',
-              // For shapes: no visible border (canvas draws the shape border)
-              border: 'none',
-              outline: 'none',
-              resize: 'none',
-              overflow: 'hidden',
-              padding: `${4 * camera.zoom}px`,
-              margin: 0,
-              lineHeight: 1.5,
-              whiteSpace: (editingElement.type === 'text' && editingElement.autoSize) ? 'pre' : 'pre-wrap',
-              wordWrap: 'break-word',
-              boxSizing: 'border-box',
-              textAlign: editingElement.type === 'text' ? 'left' : 'center',
-              pointerEvents: 'auto',
-            }}
-          />
-        </div>
+              }}
+              onKeyDown={e => {
+                e.stopPropagation();
+                if (e.key === 'Escape') {
+                  if (textInputRef.current && editingElement.type === 'text') {
+                    const dims = measureTextDimensions(textInputRef.current.value, editingElement);
+                    updateElement(editingTextId, {
+                      height: dims.height,
+                    });
+                  }
+                  setEditingTextId(null);
+                  setTool('select');
+                  commit();
+                }
+              }}
+              style={{
+                display: 'block',
+                width: editingElement.type !== 'text' ? '100%' : (editingElement.autoSize ? 'auto' : Math.abs(editingElement.width ?? 200) * camera.zoom),
+                maxWidth: '80vw',
+                minHeight: (editingElement.fontSize ?? 20) * camera.zoom * 1.5,
+                fontSize: (editingElement.fontSize ?? 20) * camera.zoom,
+                fontFamily: editingElement.fontFamily === 'hand' ? 'Caveat, cursive' :
+                  editingElement.fontFamily === 'code' ? '"Courier New", monospace' :
+                    editingElement.fontFamily === 'serif' ? 'Georgia, serif' :
+                      editingElement.fontFamily === 'comic' ? '"Comic Sans MS", cursive' :
+                        editingElement.fontFamily === 'impact' ? 'Impact, sans-serif' :
+                          'Inter, sans-serif',
+                // For shapes: text is rendered by canvas, so make textarea text invisible
+                color: editingElement.type === 'text' ? (editingElement.strokeColor ?? '#1e1e1e') : 'transparent',
+                caretColor: editingElement.strokeColor ?? '#1e1e1e',
+                background: 'transparent',
+                // For shapes: no visible border (canvas draws the shape border)
+                border: 'none',
+                outline: 'none',
+                resize: 'none',
+                overflow: 'hidden',
+                padding: `${4 * camera.zoom}px`,
+                margin: 0,
+                lineHeight: 1.5,
+                whiteSpace: (editingElement.type === 'text' && editingElement.autoSize) ? 'pre' : 'pre-wrap',
+                wordWrap: 'break-word',
+                boxSizing: 'border-box',
+                textAlign: editingElement.type === 'text' ? 'left' : 'center',
+                pointerEvents: 'auto',
+              }}
+            />
+          </div>
         );
       })() : null}
 
@@ -1984,7 +1984,7 @@ export function InfiniteCanvas() {
             color: appState.theme === 'dark' ? '#fff' : '#000',
           }}>
             <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>Share Canvas</h2>
-            
+
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: 'block', marginBottom: 8, fontSize: 14 }}>Email Address</label>
               <input
