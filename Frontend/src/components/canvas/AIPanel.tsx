@@ -151,6 +151,7 @@ export function AIPanel({ theme, camera = { x: 0, y: 0, zoom: 1 } }: AIPanelProp
       {/* Floating trigger button */}
       <button
         id="ai-panel-trigger"
+        className="ai-trigger-btn"
         title="Generate diagram with AI"
         onClick={() => setOpen(o => !o)}
         style={{
@@ -170,8 +171,6 @@ export function AIPanel({ theme, camera = { x: 0, y: 0, zoom: 1 } }: AIPanelProp
           transition: 'all 0.2s ease',
           letterSpacing: 0.2,
         }}
-        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.05)'; }}
-        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'; }}
       >
         <Wand2 size={16} />
         AI Generate
@@ -203,10 +202,16 @@ export function AIPanel({ theme, camera = { x: 0, y: 0, zoom: 1 } }: AIPanelProp
               from { opacity: 0; transform: translateY(12px); }
               to   { opacity: 1; transform: translateY(0); }
             }
+            @keyframes spin { 
+              to { transform: rotate(360deg); } 
+            }
             .ai-quick-chip:hover {
               background: ${accentLight} !important;
               border-color: ${accent} !important;
               color: ${accent} !important;
+            }
+            .ai-trigger-btn:hover {
+              transform: scale(1.05);
             }
           `}</style>
 
@@ -249,8 +254,12 @@ export function AIPanel({ theme, camera = { x: 0, y: 0, zoom: 1 } }: AIPanelProp
               <textarea
                 ref={textareaRef}
                 value={prompt}
-                onChange={e => setPrompt(e.target.value)}
+                onChange={e => {
+                  setPrompt(e.target.value);
+                  if (error) setError(null);
+                }}
                 onKeyDown={handleKey}
+                aria-label="Prompt for AI diagram generation"
                 rows={3}
                 maxLength={1000}
                 disabled={loading}
@@ -370,7 +379,6 @@ export function AIPanel({ theme, camera = { x: 0, y: 0, zoom: 1 } }: AIPanelProp
                 </>
               )}
             </button>
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
             <div style={{ textAlign: 'center', marginTop: 10, fontSize: 10, color: muted }}>
               Elements will be added to your current canvas
