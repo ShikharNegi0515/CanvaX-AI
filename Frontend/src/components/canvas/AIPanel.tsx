@@ -107,6 +107,9 @@ export function AIPanel({ theme, camera = { x: 0, y: 0, zoom: 1 } }: AIPanelProp
         if (updated.groupId && idMap.has(updated.groupId)) {
           updated.groupId = idMap.get(updated.groupId);
         }
+        if (updated.frameId && idMap.has(updated.frameId)) {
+          updated.frameId = idMap.get(updated.frameId);
+        }
         if (updated.startBinding?.elementId && idMap.has(updated.startBinding.elementId)) {
           updated.startBinding = {
             ...updated.startBinding,
