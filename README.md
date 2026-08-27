@@ -28,6 +28,7 @@ CanvaX AI is a cutting-edge, AI-powered visual design platform that merges the c
 - **Canvas Engine**: Konva.js (React-Konva)
 - **State Management**: Redux Toolkit & Zustand
 - **Data Fetching**: React Query
+- **Testing**: Vitest, React Testing Library
 
 ### Backend
 - **Framework**: NestJS (TypeScript)
@@ -35,6 +36,7 @@ CanvaX AI is a cutting-edge, AI-powered visual design platform that merges the c
 - **AI Integration**: LangChain & Google Gemini AI API
 - **Authentication**: Passport (Google & GitHub Strategies), JWT
 - **Real-Time Engine**: WebSockets via Socket.IO, Redis (Session/State management)
+- **Testing**: Jest
 
 ## 🏁 Getting Started
 
@@ -44,9 +46,15 @@ CanvaX AI is a cutting-edge, AI-powered visual design platform that merges the c
 3. Install dependencies: `npm install`
 4. Apply database migrations: `npx prisma migrate dev`
 5. Start development server: `npm run start:dev`
+6. Run tests: `npm run test`
 
 ### Frontend Setup
 1. `cd Frontend`
 2. Create a `.env` file and set the required environment variables (e.g., API base URL).
 3. Install dependencies: `npm install`
 4. Start the frontend client: `npm run dev`
+5. Run tests: `npm run test`
+
+## 🧪 Testing and Stability
+
+Both Frontend and Backend include automated testing to ensure stability. The backend uses Jest for service and controller tests, while the frontend utilizes Vitest and React Testing Library for comprehensive component testing.
