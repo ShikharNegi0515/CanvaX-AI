@@ -16,8 +16,10 @@ async function bootstrap() {
     'http://localhost:5174',
     'http://localhost:5175',
     'http://localhost:3001',
+    'https://canva-x-ai.vercel.app', // Production frontend
   ];
 
+  // Allow additional origins via env var
   if (process.env.CORS_ORIGIN) {
     allowedOrigins.push(process.env.CORS_ORIGIN);
   }
@@ -25,6 +27,8 @@ async function bootstrap() {
   app.enableCors({
     origin: allowedOrigins,
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   // Global validation pipe using class-validator
