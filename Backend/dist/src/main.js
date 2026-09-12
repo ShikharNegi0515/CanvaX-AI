@@ -25,5 +25,8 @@ async function bootstrap() {
     await app.listen(process.env.PORT ?? 3000);
     console.log(`CanvasX API running on http://localhost:${process.env.PORT ?? 3000}`);
 }
-bootstrap();
+bootstrap().catch((err) => {
+    console.error(err);
+    process.exit(1);
+});
 //# sourceMappingURL=main.js.map

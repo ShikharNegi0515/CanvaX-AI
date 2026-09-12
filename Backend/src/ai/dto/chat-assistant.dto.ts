@@ -1,4 +1,4 @@
-import { IsArray, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsOptional } from 'class-validator';
 
 export class ChatAssistantDto {
   @IsArray()
@@ -6,5 +6,5 @@ export class ChatAssistantDto {
 
   @IsArray()
   @IsOptional()
-  canvasElements?: any[];
+  canvasElements?: Record<string, unknown>[];
 }

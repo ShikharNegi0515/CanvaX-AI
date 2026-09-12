@@ -170,7 +170,7 @@ export const AuthPage = () => {
         {/* OAuth Buttons */}
         <div className="space-y-3 mb-6">
           <button
-            onClick={() => window.location.href = 'http://localhost:3000/auth/google'}
+            onClick={() => window.location.href = `${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/auth/google`}
             className="w-full flex items-center justify-center gap-3 py-3 rounded-xl transition-all"
             style={{
               background: 'rgba(255,255,255,0.05)',
@@ -192,7 +192,7 @@ export const AuthPage = () => {
           </button>
           
           <button
-            onClick={() => window.location.href = 'http://localhost:3000/auth/github'}
+            onClick={() => window.location.href = `${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/auth/github`}
             className="w-full flex items-center justify-center gap-3 py-3 rounded-xl transition-all"
             style={{
               background: 'rgba(255,255,255,0.05)',

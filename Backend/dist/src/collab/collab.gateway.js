@@ -43,13 +43,17 @@ let CollabGateway = CollabGateway_1 = class CollabGateway {
             hash = userId.charCodeAt(i) + ((hash << 5) - hash);
         return colors[Math.abs(hash) % colors.length];
     }
-    async handleConnection(socket) {
+    handleConnection(socket) {
         try {
             const token = socket.handshake.auth?.token ||
                 (socket.handshake.headers.authorization?.replace('Bearer ', '') ?? '');
             const payload = this.jwtService.verify(token);
-            socket.data.userId = payload.sub;
-            socket.data.name = payload.email.split('@')[0];
+            const currentData = socket.data;
+            socket.data = {
+                ...currentData,
+                userId: payload.sub,
+                name: payload.email.split('@')[0],
+            };
             this.logger.log(`Connected: ${socket.id} user=${payload.sub}`);
         }
         catch {
@@ -72,12 +76,13 @@ let CollabGateway = CollabGateway_1 = class CollabGateway {
         }
         this.logger.log(`Disconnected: ${socket.id}`);
     }
-    handleJoin(socket, payload) {
+    async handleJoin(socket, payload) {
         const { canvasId } = payload;
-        const userId = socket.data.userId;
-        const name = socket.data.name;
+        const currentData = socket.data;
+        const userId = String(currentData.userId);
+        const name = String(currentData.name);
         const color = this.userColor(userId);
-        socket.join(canvasId);
+        await socket.join(canvasId);
         if (!this.rooms.has(canvasId))
             this.rooms.set(canvasId, new Set());
         this.rooms.get(canvasId).add(socket.id);
@@ -128,7 +133,7 @@ __decorate([
     __param(1, (0, websockets_1.MessageBody)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [socket_io_1.Socket, Object]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], CollabGateway.prototype, "handleJoin", null);
 __decorate([
     (0, websockets_1.SubscribeMessage)('canvas:patch'),

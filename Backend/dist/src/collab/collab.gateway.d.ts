@@ -13,11 +13,11 @@ export declare class CollabGateway implements OnGatewayConnection, OnGatewayDisc
     private socketMeta;
     constructor(jwtService: JwtService);
     private userColor;
-    handleConnection(socket: Socket): Promise<void>;
+    handleConnection(socket: Socket): void;
     handleDisconnect(socket: Socket): void;
     handleJoin(socket: Socket, payload: {
         canvasId: string;
-    }): void;
+    }): Promise<void>;
     handlePatch(socket: Socket, payload: PatchPayload): void;
     handleCursor(socket: Socket, payload: {
         x: number;

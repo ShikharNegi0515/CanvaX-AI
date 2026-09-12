@@ -3,5 +3,5 @@ export declare class ChatAssistantDto {
         role: 'user' | 'assistant';
         content: string;
     }[];
-    canvasElements?: any[];
+    canvasElements?: Record<string, unknown>[];
 }

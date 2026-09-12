@@ -3,6 +3,14 @@ import { Strategy } from 'passport-github2';
 import { Injectable } from '@nestjs/common';
 import { AuthService } from '../auth.service';
 
+export interface GitHubProfile {
+  id: string;
+  username: string;
+  displayName?: string;
+  emails?: Array<{ value: string }>;
+  photos?: Array<{ value: string }>;
+}
+
 @Injectable()
 export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
   constructor(private authService: AuthService) {
@@ -19,9 +27,9 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
   async validate(
     accessToken: string,
     refreshToken: string,
-    profile: any,
-    done: any,
-  ): Promise<any> {
+    profile: GitHubProfile,
+    done: (error: Error | null, user?: unknown) => void,
+  ): Promise<void> {
     const { id, username, displayName, emails, photos } = profile;
 
     // Sometimes GitHub emails are private, we might need to fetch them, but passport-github2 with scope user:email usually gets it.

@@ -41,6 +41,7 @@ export class AuthService {
     const valid = await bcrypt.compare(dto.password, user.password);
     if (!valid) throw new UnauthorizedException('Invalid credentials');
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _pw, ...safeUser } = user;
     const token = this.signToken(user.id, user.email);
     return { user: safeUser, access_token: token };
@@ -60,7 +61,7 @@ export class AuthService {
 
     if (user) {
       // Update existing user with OAuth provider ID if not linked
-      const updateData: any = {};
+      const updateData: Record<string, string> = {};
       if (provider === 'google' && !user.googleId)
         updateData.googleId = providerId;
       if (provider === 'github' && !user.githubId)
@@ -86,6 +87,7 @@ export class AuthService {
       });
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _pw, ...safeUser } = user;
     const token = this.signToken(user.id, user.email);
     return { user: safeUser, access_token: token };

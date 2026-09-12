@@ -21,7 +21,7 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
             secretOrKey: process.env.JWT_SECRET || 'canvax-secret-key',
         });
     }
-    async validate(payload) {
+    validate(payload) {
         if (!payload?.sub)
             throw new common_1.UnauthorizedException();
         return { id: payload.sub, email: payload.email };

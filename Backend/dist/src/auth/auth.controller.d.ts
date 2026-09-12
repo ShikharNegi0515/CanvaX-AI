@@ -1,5 +1,12 @@
+import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
+interface OAuthRequest {
+    user: {
+        access_token: string;
+        user: Record<string, unknown>;
+    };
+}
 export declare class AuthController {
     private authService;
     constructor(authService: AuthService);
@@ -42,7 +49,8 @@ export declare class AuthController {
         }[];
     }>;
     googleAuth(): Promise<void>;
-    googleAuthRedirect(req: any, res: any): void;
+    googleAuthRedirect(req: OAuthRequest, res: Response): void;
     githubAuth(): Promise<void>;
-    githubAuthRedirect(req: any, res: any): void;
+    githubAuthRedirect(req: OAuthRequest, res: Response): void;
 }
+export {};

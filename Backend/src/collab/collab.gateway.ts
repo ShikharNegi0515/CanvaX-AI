@@ -63,15 +63,20 @@ export class CollabGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return colors[Math.abs(hash) % colors.length];
   }
 
-  async handleConnection(socket: Socket) {
+  handleConnection(socket: Socket) {
     try {
       const token =
         (socket.handshake.auth?.token as string) ||
         (socket.handshake.headers.authorization?.replace('Bearer ', '') ?? '');
-      const payload = this.jwtService.verify(token);
-      socket.data.userId = payload.sub;
-      // Derive a display name from the email prefix (e.g. john.doe@example.com → john.doe)
-      socket.data.name = payload.email.split('@')[0];
+      const payload = this.jwtService.verify<{ sub: string; email: string }>(
+        token,
+      );
+      const currentData = socket.data as Record<string, unknown>;
+      socket.data = {
+        ...currentData,
+        userId: payload.sub,
+        name: payload.email.split('@')[0],
+      };
       this.logger.log(`Connected: ${socket.id} user=${payload.sub}`);
     } catch {
       this.logger.warn(`Unauthorized WS connection: ${socket.id}`);
@@ -96,16 +101,17 @@ export class CollabGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('room:join')
-  handleJoin(
+  async handleJoin(
     @ConnectedSocket() socket: Socket,
     @MessageBody() payload: { canvasId: string },
   ) {
     const { canvasId } = payload;
-    const userId: string = socket.data.userId;
-    const name: string = socket.data.name;
+    const currentData = socket.data as Record<string, unknown>;
+    const userId = String(currentData.userId);
+    const name = String(currentData.name);
     const color = this.userColor(userId);
 
-    socket.join(canvasId);
+    await socket.join(canvasId);
 
     if (!this.rooms.has(canvasId)) this.rooms.set(canvasId, new Set());
     this.rooms.get(canvasId)!.add(socket.id);

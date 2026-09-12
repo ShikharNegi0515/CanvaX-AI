@@ -8,11 +8,19 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
 const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:5173';
+
+interface OAuthRequest {
+  user: {
+    access_token: string;
+    user: Record<string, unknown>;
+  };
+}
 
 @Controller('auth')
 export class AuthController {
@@ -41,7 +49,7 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  googleAuthRedirect(@Request() req: any, @Res() res: any) {
+  googleAuthRedirect(@Request() req: OAuthRequest, @Res() res: Response) {
     const { access_token, user } = req.user;
     res.redirect(
       `${FRONTEND_URL}/auth/callback?token=${access_token}&user=${encodeURIComponent(JSON.stringify(user))}`,
@@ -55,7 +63,7 @@ export class AuthController {
 
   @Get('github/callback')
   @UseGuards(AuthGuard('github'))
-  githubAuthRedirect(@Request() req: any, @Res() res: any) {
+  githubAuthRedirect(@Request() req: OAuthRequest, @Res() res: Response) {
     const { access_token, user } = req.user;
     res.redirect(
       `${FRONTEND_URL}/auth/callback?token=${access_token}&user=${encodeURIComponent(JSON.stringify(user))}`,

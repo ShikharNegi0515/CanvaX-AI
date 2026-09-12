@@ -98,7 +98,7 @@ let AiService = AiService_1 = class AiService {
         catch (err) {
             if (err instanceof common_1.InternalServerErrorException)
                 throw err;
-            this.logger.error('AI generation error', err?.message);
+            this.logger.error('AI generation error', err instanceof Error ? err.message : String(err));
             throw new common_1.InternalServerErrorException('Failed to generate diagram.');
         }
     }
@@ -118,7 +118,7 @@ Return ONLY the updated valid JSON array of elements.`;
             return parsed;
         }
         catch (err) {
-            this.logger.error('AI beautify error', err?.message);
+            this.logger.error('AI beautify error', err instanceof Error ? err.message : String(err));
             return elements;
         }
     }
@@ -142,7 +142,7 @@ Return ONLY a valid JSON array of canvas elements following the CanvaX AI schema
             }));
         }
         catch (err) {
-            this.logger.error('AI transform error', err?.message);
+            this.logger.error('AI transform error', err instanceof Error ? err.message : String(err));
             throw new common_1.InternalServerErrorException('Failed to transform selected elements.');
         }
     }
@@ -181,7 +181,7 @@ ACTION_JSON:[{"type":"sticky","text":"Note content","x":300,"y":300,"width":160,
             return { text, newElements };
         }
         catch (err) {
-            this.logger.error('AI chat error', err?.message);
+            this.logger.error('AI chat error', err instanceof Error ? err.message : String(err));
             return {
                 text: "I'm sorry, I ran into an issue connecting to AI services.",
             };

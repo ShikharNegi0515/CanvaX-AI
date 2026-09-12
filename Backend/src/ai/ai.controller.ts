@@ -1,6 +1,6 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AiService } from './ai.service';
+import { AiService, DiagramElement } from './ai.service';
 import { GenerateDiagramDto } from './dto/generate-diagram.dto';
 import { BeautifyDiagramDto } from './dto/beautify-diagram.dto';
 import { TransformElementsDto } from './dto/transform-elements.dto';
@@ -19,14 +19,16 @@ export class AiController {
 
   @Post('beautify')
   async beautify(@Body() dto: BeautifyDiagramDto) {
-    const elements = await this.aiService.beautifyDiagram(dto.elements);
+    const elements = await this.aiService.beautifyDiagram(
+      dto.elements as DiagramElement[],
+    );
     return { elements };
   }
 
   @Post('transform')
   async transform(@Body() dto: TransformElementsDto) {
     const elements = await this.aiService.transformElements(
-      dto.elements,
+      dto.elements as DiagramElement[],
       dto.prompt,
     );
     return { elements };
@@ -36,7 +38,7 @@ export class AiController {
   async chat(@Body() dto: ChatAssistantDto) {
     const result = await this.aiService.chatWithAi(
       dto.messages,
-      dto.canvasElements,
+      dto.canvasElements as unknown as DiagramElement[],
     );
     return result;
   }

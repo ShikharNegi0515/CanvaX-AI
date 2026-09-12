@@ -103,7 +103,7 @@ export class AiService {
     return this._model;
   }
 
-  private cleanJsonResponse(raw: string): any {
+  private cleanJsonResponse(raw: string): unknown {
     const cleaned = raw
       .replace(/^```(?:json)?\s*/i, '')
       .replace(/```\s*$/, '')
@@ -124,14 +124,17 @@ export class AiService {
           'AI response was not a JSON array.',
         );
 
-      return parsed.map((el, i) => ({
+      return (parsed as DiagramElement[]).map((el, i) => ({
         ...el,
         id: el.id || crypto.randomUUID(),
         seed: el.seed ?? Math.floor(Math.random() * 100000) + i,
       }));
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err instanceof InternalServerErrorException) throw err;
-      this.logger.error('AI generation error', err?.message);
+      this.logger.error(
+        'AI generation error',
+        err instanceof Error ? err.message : String(err),
+      );
       throw new InternalServerErrorException('Failed to generate diagram.');
     }
   }
@@ -152,9 +155,12 @@ Return ONLY the updated valid JSON array of elements.`;
 
       const parsed = this.cleanJsonResponse(response.content as string);
       if (!Array.isArray(parsed)) return elements;
-      return parsed;
-    } catch (err: any) {
-      this.logger.error('AI beautify error', err?.message);
+      return parsed as DiagramElement[];
+    } catch (err: unknown) {
+      this.logger.error(
+        'AI beautify error',
+        err instanceof Error ? err.message : String(err),
+      );
       return elements; // fallback to original elements if AI fails
     }
   }
@@ -176,13 +182,16 @@ Return ONLY a valid JSON array of canvas elements following the CanvaX AI schema
 
       const parsed = this.cleanJsonResponse(response.content as string);
       if (!Array.isArray(parsed)) return [];
-      return parsed.map((el, i) => ({
+      return (parsed as DiagramElement[]).map((el, i) => ({
         ...el,
         id: el.id || crypto.randomUUID(),
         seed: el.seed ?? Math.floor(Math.random() * 100000) + i,
       }));
-    } catch (err: any) {
-      this.logger.error('AI transform error', err?.message);
+    } catch (err: unknown) {
+      this.logger.error(
+        'AI transform error',
+        err instanceof Error ? err.message : String(err),
+      );
       throw new InternalServerErrorException(
         'Failed to transform selected elements.',
       );
@@ -218,9 +227,9 @@ ACTION_JSON:[{"type":"sticky","text":"Note content","x":300,"y":300,"width":160,
       if (actionMatch) {
         text = rawText.replace(/ACTION_JSON:\[.*\]/s, '').trim();
         try {
-          const parsed = JSON.parse(actionMatch[1]);
+          const parsed = JSON.parse(actionMatch[1]) as unknown;
           if (Array.isArray(parsed)) {
-            newElements = parsed.map((el, i) => ({
+            newElements = (parsed as DiagramElement[]).map((el, i) => ({
               ...el,
               id: el.id || crypto.randomUUID(),
               seed: el.seed ?? Math.floor(Math.random() * 100000) + i,
@@ -232,8 +241,11 @@ ACTION_JSON:[{"type":"sticky","text":"Note content","x":300,"y":300,"width":160,
       }
 
       return { text, newElements };
-    } catch (err: any) {
-      this.logger.error('AI chat error', err?.message);
+    } catch (err: unknown) {
+      this.logger.error(
+        'AI chat error',
+        err instanceof Error ? err.message : String(err),
+      );
       return {
         text: "I'm sorry, I ran into an issue connecting to AI services.",
       };
