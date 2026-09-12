@@ -36,7 +36,7 @@ const C = {
 };
 
 export const DashboardPage = () => {
-  const { user, logout } = useAuthStore();
+  const { user, logout, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
 
   const [canvases, setCanvases] = useState<CanvasData[]>([]);
@@ -50,12 +50,27 @@ export const DashboardPage = () => {
   const [renameValue, setRenameValue] = useState('');
   const renameInputRef = useRef<HTMLInputElement>(null);
 
+  // Auth guard — redirect to /auth if not logged in
   useEffect(() => {
+    if (!isAuthenticated()) {
+      navigate('/auth', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
+    if (!isAuthenticated()) return;
     canvasApi.list().then((list) => {
       setCanvases(list);
       setLoading(false);
-    }).catch(() => setLoading(false));
-  }, []);
+    }).catch((err) => {
+      setLoading(false);
+      // If token is invalid/expired, send to login
+      if (err instanceof Error && (err.message.includes('401') || err.message.toLowerCase().includes('unauthorized'))) {
+        logout();
+        navigate('/auth', { replace: true });
+      }
+    });
+  }, [isAuthenticated, logout, navigate]);
 
   const handleCreate = async () => {
     setCreating(true);
