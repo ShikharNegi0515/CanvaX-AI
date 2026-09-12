@@ -1,10 +1,22 @@
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { json, urlencoded } from 'express';
+import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
+  const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
+
+  // Register global exception filter for detailed error logging
+  app.useGlobalFilters(new AllExceptionsFilter());
+
+  // Log critical env vars at startup (values redacted)
+  logger.log(`DATABASE_URL set: ${!!process.env.DATABASE_URL}`);
+  logger.log(`JWT_SECRET set: ${!!process.env.JWT_SECRET}`);
+  logger.log(`FRONTEND_URL: ${process.env.FRONTEND_URL ?? 'NOT SET (defaulting to localhost)'}`);
+  logger.log(`CORS_ORIGIN: ${process.env.CORS_ORIGIN ?? 'NOT SET'}`);
+  logger.log(`NODE_ENV: ${process.env.NODE_ENV ?? 'NOT SET'}`);
 
   // Increase payload limit for large canvases with thousands of elements
   app.use(json({ limit: '50mb' }));
